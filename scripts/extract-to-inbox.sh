@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# SessionEnd hook for auto-capture into the garden vault inbox.
+# Generic transcript-to-inbox extractor. Used by both SessionEnd and PreCompact hooks.
+#
+# Usage in settings.json hook:
+#   "command": "/path/to/extract-to-inbox.sh <source-label>"
+# where <source-label> is e.g. "session" or "pre-compact".
 #
 # Reads JSON input from stdin (Claude Code hook contract):
-#   { "session_id": "...", "transcript_path": "<jsonl>", "cwd": "...", "reason": "..." }
+#   { "session_id", "transcript_path", "cwd", "reason"?, "trigger"?, "custom_instructions"? }
 #
 # Extracts user+assistant text from the transcript, pipes through `claude -p`
 # with a focused extraction prompt, writes capture files into ~/garden/inbox/.
-# Forks the heavy work so the hook returns immediately and doesn't block session shutdown.
+# Forks the heavy work so the hook returns immediately.
 
 set -e
+
+SOURCE_LABEL="${1:-unknown}"
 
 # Source shell profile so claude resolves under non-interactive shells
 [ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc" 2>/dev/null || true
@@ -16,7 +22,7 @@ set -e
 
 VAULT="${GARDEN_VAULT:-$HOME/garden}"
 INBOX="$VAULT/inbox"
-LOG="$VAULT/.session-end-log"
+LOG="$VAULT/.extract-log"
 MIN_WORDS="${GARDEN_CAPTURE_MIN_WORDS:-200}"
 MAX_ITEMS="${GARDEN_CAPTURE_MAX_ITEMS:-5}"
 
@@ -25,34 +31,40 @@ mkdir -p "$INBOX"
 # Read hook input from stdin
 INPUT=$(cat)
 
-# Extract fields with python3 (more reliable than ad-hoc parsing)
+# Extract fields with python3
 if ! command -v python3 >/dev/null 2>&1; then
-  echo "$(date): session-end: python3 not found, skipping" >> "$LOG"
+  echo "$(date): extract[$SOURCE_LABEL]: python3 not found, skipping" >> "$LOG"
   exit 0
 fi
 
-TRANSCRIPT_PATH=$(echo "$INPUT" | python3 -c 'import sys,json
-try: print(json.load(sys.stdin).get("transcript_path",""))
-except: print("")')
-SESSION_ID=$(echo "$INPUT" | python3 -c 'import sys,json
-try: print(json.load(sys.stdin).get("session_id","unknown"))
-except: print("unknown")')
-REASON=$(echo "$INPUT" | python3 -c 'import sys,json
-try: print(json.load(sys.stdin).get("reason","other"))
-except: print("other")')
+read_field() {
+  echo "$INPUT" | python3 -c "
+import sys, json
+try:
+    print(json.load(sys.stdin).get('$1', ''))
+except Exception:
+    print('')
+"
+}
 
-# Sanity checks — exit 0 (don't fail the session)
+TRANSCRIPT_PATH=$(read_field transcript_path)
+SESSION_ID=$(read_field session_id)
+REASON=$(read_field reason)              # SessionEnd
+TRIGGER=$(read_field trigger)            # PreCompact (manual|auto)
+CUSTOM_INSTRUCTIONS=$(read_field custom_instructions)  # PreCompact (manual)
+
+# Sanity checks — exit 0 (don't fail the hook chain)
 if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ]; then
-  echo "$(date): session-end: no transcript at '$TRANSCRIPT_PATH', skipping" >> "$LOG"
+  echo "$(date): extract[$SOURCE_LABEL]: no transcript at '$TRANSCRIPT_PATH', skipping" >> "$LOG"
   exit 0
 fi
 
 if ! command -v claude >/dev/null 2>&1; then
-  echo "$(date): session-end: claude CLI not on PATH, skipping" >> "$LOG"
+  echo "$(date): extract[$SOURCE_LABEL]: claude CLI not on PATH, skipping" >> "$LOG"
   exit 0
 fi
 
-# Extract user+assistant text only (skip tool results, system messages, etc.)
+# Extract user+assistant text only
 TRANSCRIPT_TEXT=$(python3 <<EOF
 import json
 out = []
@@ -80,19 +92,32 @@ print("\n".join(out))
 EOF
 )
 
-# Skip empty or short transcripts
 WORD_COUNT=$(echo "$TRANSCRIPT_TEXT" | wc -w | tr -d ' ')
 if [ "$WORD_COUNT" -lt "$MIN_WORDS" ]; then
-  echo "$(date): session-end: $WORD_COUNT words < $MIN_WORDS threshold, skipping (reason=$REASON)" >> "$LOG"
+  echo "$(date): extract[$SOURCE_LABEL]: $WORD_COUNT words < $MIN_WORDS threshold, skipping" >> "$LOG"
   exit 0
 fi
 
 TS=$(date +%Y-%m-%d-%H%M)
 DATE=$(date +%Y-%m-%d)
+SOURCE_TAG="$SOURCE_LABEL-$TS"
 
-echo "$(date): session-end: extracting from $SESSION_ID ($WORD_COUNT words, reason=$REASON)" >> "$LOG"
+META_NOTE=""
+[ -n "$REASON" ] && META_NOTE="reason=$REASON "
+[ -n "$TRIGGER" ] && META_NOTE="${META_NOTE}trigger=$TRIGGER "
+[ -n "$CUSTOM_INSTRUCTIONS" ] && META_NOTE="${META_NOTE}custom='${CUSTOM_INSTRUCTIONS}'"
 
-# Build the extraction prompt
+echo "$(date): extract[$SOURCE_LABEL]: extracting from $SESSION_ID ($WORD_COUNT words) $META_NOTE" >> "$LOG"
+
+# Hint for the extractor if user gave custom compaction instructions
+HINT=""
+if [ -n "$CUSTOM_INSTRUCTIONS" ]; then
+  HINT="
+
+USER HINT: when the user triggered this compaction they specifically asked to preserve: $CUSTOM_INSTRUCTIONS
+Prioritize capturing items related to that hint."
+fi
+
 PROMPT=$(cat <<EOF
 You are extracting noteworthy items from a conversation transcript into a personal knowledge vault.
 
@@ -102,13 +127,14 @@ Read the transcript below and extract ONLY genuinely noteworthy items in these c
 - Open questions worth tracking
 - Factual claims about projects, people, or tools (state, status, opinions held)
 - Useful references (URLs with one-line description)
+$HINT
 
 For EACH noteworthy item, write a separate markdown file to $INBOX/ using the Write tool. Use this exact format:
 
 ---
 type: capture
 created: $DATE
-source: session-$TS
+source: $SOURCE_TAG
 ---
 
 # <one-line summary>
@@ -137,18 +163,17 @@ $TRANSCRIPT_TEXT
 EOF
 )
 
-# Run the extraction in the background so the session-end hook returns immediately
+# Run extraction in background so the hook returns immediately
 (
   echo "$PROMPT" | claude -p --permission-mode acceptEdits >> "$LOG" 2>&1
 
-  # Commit any new inbox files so they're not lost before the gardener runs
   cd "$VAULT"
   if [ -n "$(git status --porcelain inbox/ 2>/dev/null)" ]; then
     git add inbox/ 2>/dev/null && \
-      git commit -m "capture: $TS — auto from session $SESSION_ID" -q 2>/dev/null && \
-      echo "$(date): session-end: committed new captures" >> "$LOG"
+      git commit -m "capture: $SOURCE_TAG — auto from session $SESSION_ID" -q 2>/dev/null && \
+      echo "$(date): extract[$SOURCE_LABEL]: committed new captures" >> "$LOG"
   else
-    echo "$(date): session-end: no new captures written" >> "$LOG"
+    echo "$(date): extract[$SOURCE_LABEL]: no new captures written" >> "$LOG"
   fi
 ) &
 disown

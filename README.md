@@ -51,7 +51,7 @@ The installer is idempotent. It will:
 
 1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`.
 2. Symlink `skills/garden-*` into `~/.claude/skills/`.
-3. Wire `SessionStart` and `SessionEnd` hooks in `~/.claude/settings.json` (recall + auto-capture).
+3. Wire `SessionStart`, `SessionEnd`, and `PreCompact` hooks in `~/.claude/settings.json` (recall + auto-capture on session end and before context compaction).
 4. Initialize git in `~/garden/` if not already.
 5. Print next steps.
 
@@ -79,8 +79,8 @@ gardenkit/
 │   ├── garden-recall/SKILL.md   ← search the vault, surface notes
 │   └── gardener/SKILL.md        ← scheduled maintenance
 ├── scripts/
-│   ├── session-start.sh         ← hook: pull, inject index/identity
-│   ├── session-end.sh           ← hook: extract noteworthy items into inbox/
+│   ├── session-start.sh         ← SessionStart hook: pull, inject index/identity
+│   ├── extract-to-inbox.sh      ← SessionEnd + PreCompact hook: extract noteworthy items
 │   └── gardener-run.sh          ← invoked by cron (or routine)
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md

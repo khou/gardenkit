@@ -56,7 +56,14 @@ A `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/use
 ### Capture (during/after session)
 The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
 - The user explicitly: "capture this"
-- The `SessionEnd` hook (`scripts/session-end.sh`), which reads the transcript, pipes it through `claude -p` with a focused extraction prompt, and writes one inbox file per noteworthy item. Runs in the background so session shutdown isn't blocked. Tunable via `GARDEN_CAPTURE_MIN_WORDS` (default 200) and `GARDEN_CAPTURE_MAX_ITEMS` (default 5).
+- The `SessionEnd` hook — when a session ends, extracts noteworthy items from the transcript into inbox files
+- The `PreCompact` hook — when context is about to be compacted (auto or manual `/compact`), captures items from the soon-to-be-truncated portion before they're lost. Honors `custom_instructions` from manual compactions as a hint to the extractor.
+
+Both auto-capture hooks share `scripts/extract-to-inbox.sh`, parameterized by source label. The script reads the transcript, pipes user+assistant text through `claude -p` with a focused extraction prompt, writes one inbox file per noteworthy item, and runs the heavy work in the background so the hook returns immediately.
+
+Tunable via env vars:
+- `GARDEN_CAPTURE_MIN_WORDS` (default 200) — skip extraction if transcript is shorter
+- `GARDEN_CAPTURE_MAX_ITEMS` (default 5) — cap captures per run
 
 Inbox files stay raw. The gardener decides what to keep and where to file it.
 

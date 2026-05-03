@@ -59,7 +59,8 @@ done
 
 section "4. Hooks in $SETTINGS"
 HOOK_START="$REPO_DIR/scripts/session-start.sh"
-HOOK_END="$REPO_DIR/scripts/session-end.sh"
+HOOK_END="$REPO_DIR/scripts/extract-to-inbox.sh session"
+HOOK_COMPACT="$REPO_DIR/scripts/extract-to-inbox.sh pre-compact"
 if [ ! -f "$SETTINGS" ]; then
   cat > "$SETTINGS" <<EOF
 {
@@ -78,16 +79,23 @@ if [ ! -f "$SETTINGS" ]; then
           { "type": "command", "command": "$HOOK_END" }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          { "type": "command", "command": "$HOOK_COMPACT" }
+        ]
+      }
     ]
   }
 }
 EOF
-  say "settings.json created with SessionStart + SessionEnd hooks"
+  say "settings.json created with SessionStart + SessionEnd + PreCompact hooks"
 else
-  for h in "SessionStart:$HOOK_START" "SessionEnd:$HOOK_END"; do
+  for h in "SessionStart:$HOOK_START" "SessionEnd:$HOOK_END" "PreCompact:$HOOK_COMPACT"; do
     name="${h%%:*}"
     cmd="${h#*:}"
-    if grep -q "$cmd" "$SETTINGS"; then
+    if grep -qF "$cmd" "$SETTINGS"; then
       say "$name hook already wired"
     else
       say "$name hook NOT in settings.json — add manually under .hooks.$name:"
