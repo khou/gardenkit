@@ -25,12 +25,12 @@ This system gives you all three. The vault is plain markdown so Obsidian renders
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
    ┌────▼────┐         ┌──────▼──────┐       ┌──────▼──────┐
-   │ Obsidian│         │ Claude Code │       │  Routine /  │
-   │  (you)  │         │   + hooks   │       │ cloud agent │
+   │ Obsidian│         │ Claude Code │       │  gardener   │
+   │  (you)  │         │   + hooks   │       │   (cron)    │
    └─────────┘         └─────────────┘       └─────────────┘
                           ↑       ↑                ↑
-                    SessionStart  Stop          schedule
-                       (recall) (capture)      (gardener)
+                    SessionStart  Stop          cron schedule
+                       (recall) (capture)       (claude -p)
 ```
 
 - **Capture** writes to `inbox/` — fire-and-forget.
@@ -66,7 +66,7 @@ It will **not** overwrite existing files in your vault or remove anything.
    git remote add origin git@github.com:<you>/garden.git
    git push -u origin main
    ```
-3. **Schedule the gardener** as a routine (cloud) or local cron — see [docs/SCHEDULING.md](docs/SCHEDULING.md).
+3. **Schedule the gardener** via local cron (or optionally a cloud routine) — see [docs/SCHEDULING.md](docs/SCHEDULING.md).
 
 ## Layout
 
@@ -75,12 +75,12 @@ gardenkit/
 ├── README.md                    ← this file
 ├── install.sh                   ← idempotent installer
 ├── skills/
-│   ├── garden-capture/SKILL.md   ← drop a thought into inbox/
-│   ├── garden-recall/SKILL.md    ← search the vault, surface notes
-│   └── gardener/SKILL.md  ← scheduled maintenance
+│   ├── garden-capture/SKILL.md  ← drop a thought into inbox/
+│   ├── garden-recall/SKILL.md   ← search the vault, surface notes
+│   └── gardener/SKILL.md        ← scheduled maintenance
 ├── scripts/
 │   ├── session-start.sh         ← hook: pull, inject index/identity
-│   └── gardener-run.sh          ← invoked by routine/cron
+│   └── gardener-run.sh          ← invoked by cron (or routine)
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md
 │   ├── README.md
@@ -88,7 +88,7 @@ gardenkit/
 │   └── projects/EXAMPLE.md
 └── docs/
     ├── ARCHITECTURE.md          ← the design and reasoning
-    └── SCHEDULING.md            ← cron vs routines, examples
+    └── SCHEDULING.md            ← cron setup (and optional routines)
 ```
 
 ## License

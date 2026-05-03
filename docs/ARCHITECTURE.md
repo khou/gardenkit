@@ -105,4 +105,4 @@ The gardenkit vault complements (not replaces) Claude Code's auto memory at `~/.
 | Always loaded into Claude Code context | Loaded via SessionStart hook |
 | One-line entries | Multi-paragraph atomic notes |
 
-Use both. Memory for "what's true about Kevin"; vault for "what Kevin knows and is working on."
+Use both. Memory for "what's true about you"; vault for "what you know and are working on."

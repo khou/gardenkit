@@ -2,7 +2,7 @@
 
 Your LLM-tended second brain. Plain markdown, wiki-links, Obsidian-friendly, agent-maintained.
 
-The framework lives at https://github.com/<you>/gardenkit. This repo holds your data.
+The framework lives at https://github.com/khou/gardenkit. This repo holds your data.
 
 ## Conventions
 
