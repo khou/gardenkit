@@ -57,8 +57,9 @@ for skill in garden-capture garden-recall gardener; do
   fi
 done
 
-section "4. SessionStart hook in $SETTINGS"
-HOOK_CMD="$REPO_DIR/scripts/session-start.sh"
+section "4. Hooks in $SETTINGS"
+HOOK_START="$REPO_DIR/scripts/session-start.sh"
+HOOK_END="$REPO_DIR/scripts/session-end.sh"
 if [ ! -f "$SETTINGS" ]; then
   cat > "$SETTINGS" <<EOF
 {
@@ -67,23 +68,32 @@ if [ ! -f "$SETTINGS" ]; then
       {
         "matcher": "startup|resume",
         "hooks": [
-          { "type": "command", "command": "$HOOK_CMD" }
+          { "type": "command", "command": "$HOOK_START" }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "command", "command": "$HOOK_END" }
         ]
       }
     ]
   }
 }
 EOF
-  say "settings.json created with hook"
+  say "settings.json created with SessionStart + SessionEnd hooks"
 else
-  if grep -q "$HOOK_CMD" "$SETTINGS"; then
-    say "hook already wired"
-  else
-    say "settings.json exists — wire the hook manually:"
-    say "  add to .hooks.SessionStart:"
-    say "    { \"matcher\": \"startup|resume\","
-    say "      \"hooks\": [{ \"type\": \"command\", \"command\": \"$HOOK_CMD\" }] }"
-  fi
+  for h in "SessionStart:$HOOK_START" "SessionEnd:$HOOK_END"; do
+    name="${h%%:*}"
+    cmd="${h#*:}"
+    if grep -q "$cmd" "$SETTINGS"; then
+      say "$name hook already wired"
+    else
+      say "$name hook NOT in settings.json — add manually under .hooks.$name:"
+      say "  { \"hooks\": [{ \"type\": \"command\", \"command\": \"$cmd\" }] }"
+    fi
+  done
 fi
 
 section "5. Make scripts executable"

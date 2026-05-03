@@ -56,7 +56,7 @@ A `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/use
 ### Capture (during/after session)
 The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
 - The user explicitly: "capture this"
-- A `Stop` hook scanning the transcript for noteworthy items (decisions, learnings, facts)
+- The `SessionEnd` hook (`scripts/session-end.sh`), which reads the transcript, pipes it through `claude -p` with a focused extraction prompt, and writes one inbox file per noteworthy item. Runs in the background so session shutdown isn't blocked. Tunable via `GARDEN_CAPTURE_MIN_WORDS` (default 200) and `GARDEN_CAPTURE_MAX_ITEMS` (default 5).
 
 Inbox files stay raw. The gardener decides what to keep and where to file it.
 
