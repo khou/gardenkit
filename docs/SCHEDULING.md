@@ -1,55 +1,67 @@
 # Scheduling the gardener
 
-The gardener is an LLM agent. Cron/routine just triggers it.
+The gardener is an LLM agent. Cron just triggers it.
 
-## Option A: Routine (cloud)
+## Default: local cron
 
-**Use when:** you want it to run whether or not your laptop is on.
+A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headlessly. Uses your existing Claude Code subscription — no separate billing.
 
-**Requires:** vault pushed to GitHub, GitHub plugin connected to Cowork/Claude.
+### Setup
 
-Use the `schedule` skill in Claude Code to create a routine:
+Edit your crontab:
 
-```
-/schedule
-```
-
-When prompted, define a daily routine that:
-1. Clones/pulls `<your-username>/brain`
-2. Reads `meta/gardener-rules.md`
-3. Invokes `brain-gardener` skill logic
-4. Commits with `gardener:` prefix and pushes
-
-Suggested cadences:
-- **Hourly:** process inbox only (cheap, fast)
-- **Daily:** full pass (link maintenance, dedupe, MOC update)
-- **Weekly:** review synthesis
-- **Monthly:** decay old dailies into a summary
-
-## Option B: Local cron
-
-**Use when:** you don't need it running while traveling, or you have local-only resources to scan.
-
-Crontab entry — daily at 3 AM:
-
-```
-0 3 * * * /Users/<you>/github/brain-os/scripts/gardener-run.sh
+```bash
+crontab -e
 ```
 
-`gardener-run.sh` invokes `claude -p` headlessly with a focused prompt that triggers the `brain-gardener` skill, then commits/pushes the vault.
+Add (daily at 3 AM):
 
-## Option C: Both
+```
+0 3 * * * /Users/<you>/github/gardenkit/scripts/gardener-run.sh
+```
 
-Daily routine for the always-on baseline; local cron for anything that needs your machine (e.g., importing a watched folder, integrating a local-only tool).
+Verify it's installed:
 
-## Cost note
+```bash
+crontab -l | grep gardener
+```
 
-Routines are billed agent runs. For hourly cadences this is fine. For sub-hour, prefer local cron.
+### Cadences worth considering
+
+- **Daily, 3 AM** — full pass. Good default.
+- **Hourly** — inbox processing only. Add a second entry that calls a lighter variant if you capture a lot during the day.
+- **Weekly, Sunday** — weekly review synthesis (optional second cron entry with `--review` flag, or a dedicated script).
+
+### Notes
+
+- Cron has a minimal PATH. `gardener-run.sh` sources `~/.zshrc` to find `claude`. If you're on bash, edit the script.
+- Your laptop must be awake/on for cron to fire. If it sleeps through 3 AM, the run is skipped (next day picks it up).
+- If you want runs even while traveling without your laptop: see "Optional: routines" below.
+
+## Optional: routines (cloud)
+
+If you genuinely need always-on execution and accept the per-run billing, you can use Anthropic-hosted routines via the `schedule` skill in Claude Code.
+
+**Tradeoff:** routines are billed agent runs separate from your Claude Code subscription. Local cron uses what you're already paying for.
+
+Recommended only if:
+- You travel often and the laptop is off for days
+- You want very high cadence (cron is fine for hourly+, routines also work)
+- You want to garden multiple vaults in parallel
 
 ## Verifying the gardener ran
 
-Each gardener pass leaves a commit with `gardener: <date> — <summary>` in the vault git log. Check periodically:
+Each pass writes to `~/garden/.gardener-log` and leaves a `gardener:` commit:
 
 ```bash
-cd ~/brain && git log --grep '^gardener:' --oneline | head
+tail ~/garden/.gardener-log
+cd ~/garden && git log --grep '^gardener:' --oneline | head
 ```
+
+## Troubleshooting
+
+**`claude: command not found` in log:** the cron PATH isn't picking up Claude. Edit `gardener-run.sh` to source the right profile, or set PATH explicitly at the top.
+
+**`git push failed`:** the cron user can't auth to GitHub. Make sure your SSH key works headlessly (`ssh -T git@github.com` from a fresh shell), or use a credential helper.
+
+**Gardener never commits anything:** check the log. The gardener is conservative — if there's nothing in `inbox/` and no link/dedupe work to do, it'll exit cleanly with no changes.
