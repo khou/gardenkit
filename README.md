@@ -60,13 +60,14 @@ It will **not** overwrite existing files in your vault or remove anything.
 ## Next steps after install
 
 1. **Fill `~/garden/meta/user.md`** by asking Claude to interview you (15 questions).
-2. **Push your vault to a private GitHub repo:**
+2. **Bootstrap your voice profile** — ask Claude to "init my voice from Slack" (invokes the `garden-voice` skill). Pulls your sent messages, synthesizes patterns into `meta/voice.md`. Loaded on-demand whenever Claude drafts in your voice.
+3. **Push your vault to a private GitHub repo:**
    ```bash
    cd ~/garden
    git remote add origin git@github.com:<you>/garden.git
    git push -u origin main
    ```
-3. **Schedule the gardener** via local cron (or optionally a cloud routine) — see [docs/SCHEDULING.md](docs/SCHEDULING.md).
+4. **Schedule the gardener** via local cron (or optionally a cloud routine) — see [docs/SCHEDULING.md](docs/SCHEDULING.md).
 
 ## Layout
 

@@ -80,6 +80,16 @@ The `gardener` skill runs unattended on a schedule (cron locally or routine in t
 
 The gardener is the agent. Cron/routine is just the alarm clock.
 
+## Voice profile
+
+Separate from `soul.md` (which controls how the agent responds *to* the user), `meta/voice.md` documents how the user actually writes. It's populated by the `garden-voice` skill, which samples the user's sent messages from Slack (or other configured sources), redacts proper nouns/numbers/URLs, synthesizes style patterns, and anchors them with short example snippets.
+
+Used whenever the agent drafts something *as* the user — Slack replies, emails, PRs, tweets, blog posts. `soul.md` instructs the agent to load `voice.md` first for any such task.
+
+**Load-on-demand.** Voice doesn't get injected by the `SessionStart` hook (would bloat context for tasks that don't need it). The agent reads it only when a drafting task surfaces.
+
+Per the source material, having a calibrated voice profile is reportedly the single biggest output-quality multiplier for any drafting work. Sampling actual messages beats abstract self-description by a wide margin.
+
 ## Why hooks instead of skills-as-commands
 
 A second brain that requires manual invocation isn't a brain — it's a filing cabinet. Hooks make recall and capture *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
