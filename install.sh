@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# brain-os installer. Idempotent. Never overwrites user files.
+# gardenkit installer. Idempotent. Never overwrites user files.
 #
 # What it does:
-#   1. Creates ~/brain/ vault from templates if missing
-#   2. Symlinks skills/brain-* into ~/.claude/skills/
+#   1. Creates ~/garden/ vault from templates if missing
+#   2. Symlinks skills/garden-* into ~/.claude/skills/
 #   3. Wires SessionStart hook in ~/.claude/settings.json
-#   4. Initializes git in ~/brain/ if not already
+#   4. Initializes git in ~/garden/ if not already
 #
 # Re-run safe. To uninstall, see ./uninstall.sh (or remove symlinks + hook manually).
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VAULT="${BRAIN_VAULT:-$HOME/brain}"
+VAULT="${GARDEN_VAULT:-$HOME/garden}"
 CLAUDE_DIR="$HOME/.claude"
 SKILLS_DIR="$CLAUDE_DIR/skills"
 SETTINGS="$CLAUDE_DIR/settings.json"
@@ -44,7 +44,7 @@ fi
 
 section "3. Skills (symlinks into ~/.claude/skills/)"
 mkdir -p "$SKILLS_DIR"
-for skill in brain-capture brain-recall brain-gardener; do
+for skill in garden-capture garden-recall gardener; do
   src="$REPO_DIR/skills/$skill"
   dst="$SKILLS_DIR/$skill"
   if [ -L "$dst" ]; then
@@ -91,9 +91,9 @@ chmod +x "$REPO_DIR/scripts/"*.sh
 say "done"
 
 section "Next steps"
-say "1. Fill ~/brain/meta/user.md — ask Claude: 'Interview me for my user.md (15 questions).'"
+say "1. Fill ~/garden/meta/user.md — ask Claude: 'Interview me for my user.md (15 questions).'"
 say "2. Push the vault to a private GitHub repo:"
-say "     cd ~/brain && git remote add origin git@github.com:<you>/brain.git && git push -u origin main"
+say "     cd ~/garden && git remote add origin git@github.com:<you>/garden.git && git push -u origin main"
 say "3. Schedule the gardener — see $REPO_DIR/docs/SCHEDULING.md"
 say ""
 say "Restart Claude Code to activate the SessionStart hook."

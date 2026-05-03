@@ -1,11 +1,11 @@
 ---
-name: brain-recall
-description: Search the brain vault for notes relevant to a query and surface them with citations. Use when the user asks about past decisions ("what did I decide about X"), past work ("what's the state of Y"), or anything where the vault might already hold the answer. Greps + reads files under ~/brain/.
+name: garden-recall
+description: Search the garden vault for notes relevant to a query and surface them with citations. Use when the user asks about past decisions ("what did I decide about X"), past work ("what's the state of Y"), or anything where the vault might already hold the answer. Greps + reads files under ~/garden/.
 ---
 
-# brain-recall
+# garden-recall
 
-Pulls relevant notes from `~/brain/` for a query. Used by the SessionStart hook automatically; can also be invoked explicitly.
+Pulls relevant notes from `~/garden/` for a query. Used by the SessionStart hook automatically; can also be invoked explicitly.
 
 ## How
 
@@ -13,7 +13,7 @@ Pulls relevant notes from `~/brain/` for a query. Used by the SessionStart hook 
 
 2. **Grep the vault** for matches:
    ```bash
-   grep -ril "<term>" ~/brain --include="*.md" | head -20
+   grep -ril "<term>" ~/garden --include="*.md" | head -20
    ```
 
 3. **Rank candidates** by relevance:
@@ -50,6 +50,6 @@ Pulls relevant notes from `~/brain/` for a query. Used by the SessionStart hook 
 
 For broad recall (many candidate files), use:
 ```bash
-grep -ril "<term>" ~/brain --include="*.md" | xargs -I{} sh -c 'echo "=== {} ==="; head -20 "{}"' | head -200
+grep -ril "<term>" ~/garden --include="*.md" | xargs -I{} sh -c 'echo "=== {} ==="; head -20 "{}"' | head -200
 ```
 to get a fast overview before deep-reading.

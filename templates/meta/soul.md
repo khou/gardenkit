@@ -5,7 +5,7 @@ updated: YYYY-MM-DD
 
 # Soul: agent persona
 
-How the agent should respond when working in the brain vault.
+How the agent should respond when working in the garden vault.
 
 ## Voice
 

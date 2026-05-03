@@ -1,4 +1,4 @@
-# brain-os
+# gardenkit
 
 An LLM-tended second brain. Plain markdown vault, atomic notes, wiki-links, Obsidian-readable, agent-maintained.
 
@@ -17,7 +17,7 @@ This system gives you all three. The vault is plain markdown so Obsidian renders
 
 ```
                      ┌──────────────────┐
-                     │  ~/brain (vault) │  ← private repo, your data
+                     │  ~/garden (vault) │  ← private repo, your data
                      │   markdown +     │
                      │   wiki-links     │
                      └────────┬─────────┘
@@ -42,28 +42,28 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the long version.
 ## Install
 
 ```bash
-git clone https://github.com/<you>/brain-os.git ~/github/brain-os
-cd ~/github/brain-os
+git clone https://github.com/<you>/gardenkit.git ~/github/gardenkit
+cd ~/github/gardenkit
 ./install.sh
 ```
 
 The installer is idempotent. It will:
 
-1. Create `~/brain/` (your private vault) if missing, seeded from `templates/`.
-2. Symlink `skills/brain-*` into `~/.claude/skills/`.
+1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`.
+2. Symlink `skills/garden-*` into `~/.claude/skills/`.
 3. Wire a `SessionStart` hook in `~/.claude/settings.json` pointing at `scripts/session-start.sh`.
-4. Initialize git in `~/brain/` if not already.
+4. Initialize git in `~/garden/` if not already.
 5. Print next steps.
 
 It will **not** overwrite existing files in your vault or remove anything.
 
 ## Next steps after install
 
-1. **Fill `~/brain/meta/user.md`** by asking Claude to interview you (15 questions).
+1. **Fill `~/garden/meta/user.md`** by asking Claude to interview you (15 questions).
 2. **Push your vault to a private GitHub repo:**
    ```bash
-   cd ~/brain
-   git remote add origin git@github.com:<you>/brain.git
+   cd ~/garden
+   git remote add origin git@github.com:<you>/garden.git
    git push -u origin main
    ```
 3. **Schedule the gardener** as a routine (cloud) or local cron — see [docs/SCHEDULING.md](docs/SCHEDULING.md).
@@ -71,13 +71,13 @@ It will **not** overwrite existing files in your vault or remove anything.
 ## Layout
 
 ```
-brain-os/
+gardenkit/
 ├── README.md                    ← this file
 ├── install.sh                   ← idempotent installer
 ├── skills/
-│   ├── brain-capture/SKILL.md   ← drop a thought into inbox/
-│   ├── brain-recall/SKILL.md    ← search the vault, surface notes
-│   └── brain-gardener/SKILL.md  ← scheduled maintenance
+│   ├── garden-capture/SKILL.md   ← drop a thought into inbox/
+│   ├── garden-recall/SKILL.md    ← search the vault, surface notes
+│   └── gardener/SKILL.md  ← scheduled maintenance
 ├── scripts/
 │   ├── session-start.sh         ← hook: pull, inject index/identity
 │   └── gardener-run.sh          ← invoked by routine/cron

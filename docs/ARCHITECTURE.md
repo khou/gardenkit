@@ -1,6 +1,6 @@
 # Architecture
 
-The thinking behind brain-os.
+The thinking behind gardenkit.
 
 ## Goals
 
@@ -14,7 +14,7 @@ The thinking behind brain-os.
 Light folder structure, navigation by wiki-links:
 
 ```
-~/brain/
+~/garden/
 ├── 00-index.md             ← entry point loaded at session start
 ├── notes/                  ← atomic notes, all topics
 ├── projects/               ← one MOC per project (links accumulate)
@@ -54,14 +54,14 @@ Two rules carry the system:
 A `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/user.md` + `meta/soul.md` to stdout. Claude Code injects this as additional context for the new session. The agent then follows wiki-links on demand for deeper context.
 
 ### Capture (during/after session)
-The `brain-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
+The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
 - The user explicitly: "capture this"
 - A `Stop` hook scanning the transcript for noteworthy items (decisions, learnings, facts)
 
 Inbox files stay raw. The gardener decides what to keep and where to file it.
 
 ### Gardener (scheduled)
-The `brain-gardener` skill runs unattended on a schedule (cron locally or routine in the cloud). It:
+The `gardener` skill runs unattended on a schedule (cron locally or routine in the cloud). It:
 1. Pulls latest from git
 2. Reads `meta/gardener-rules.md` for current heuristics
 3. Processes inbox → atomic notes with proper frontmatter and wiki-links
@@ -75,7 +75,7 @@ The gardener is the agent. Cron/routine is just the alarm clock.
 
 ## Why hooks instead of skills-as-commands
 
-A second brain that requires manual invocation isn't a brain — it's a filing cabinet. Hooks make recall and capture *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the brain is in the loop.
+A second brain that requires manual invocation isn't a brain — it's a filing cabinet. Hooks make recall and capture *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
 
 Skills still exist as the **library functions** that hooks (and routines) call. They're also the manual escape hatch when automation misses something.
 
@@ -92,11 +92,11 @@ Vault-in-git is the bridge: both environments operate on the same source of trut
 
 ## Why Obsidian
 
-The vault is plain markdown, so any editor works. Obsidian's value is the **graph view + backlinks panel** for visualizing the link structure the LLM is maintaining. You see your brain.
+The vault is plain markdown, so any editor works. Obsidian's value is the **graph view + backlinks panel** for visualizing the link structure the LLM is maintaining. You see your garden.
 
 ## Memory vs vault
 
-The brain-os vault complements (not replaces) Claude Code's auto memory at `~/.claude/projects/<project>/memory/`:
+The gardenkit vault complements (not replaces) Claude Code's auto memory at `~/.claude/projects/<project>/memory/`:
 
 | Auto memory | Vault |
 |---|---|

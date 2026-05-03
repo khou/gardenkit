@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Headless gardener invocation for cron.
-# Runs Claude in -p mode with a focused prompt that triggers the brain-gardener skill.
+# Runs Claude in -p mode with a focused prompt that triggers the gardener skill.
 #
 # Cron has a minimal PATH; we source the user's shell profile so `claude` resolves.
 # If you're not on zsh, change the source line accordingly.
@@ -11,7 +11,7 @@ set -e
 [ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc" 2>/dev/null || true
 [ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc" 2>/dev/null || true
 
-VAULT="${BRAIN_VAULT:-$HOME/garden}"
+VAULT="${GARDEN_VAULT:-$HOME/garden}"
 DATE=$(date +%Y-%m-%d)
 LOG="$VAULT/.gardener-log"
 
@@ -37,7 +37,7 @@ fi
 
 # Invoke gardener skill via headless Claude
 echo "=== gardener run $DATE ===" >> "$LOG"
-claude -p "Run the brain-gardener skill on the vault at $VAULT. Today is $DATE. Process inbox, maintain links, dedupe, update MOCs, and commit + push. Be thorough but conservative — when in doubt, leave a NOTE blockquote rather than guessing." >> "$LOG" 2>&1
+claude -p "Run the gardener skill on the vault at $VAULT. Today is $DATE. Process inbox, maintain links, dedupe, update MOCs, and commit + push. Be thorough but conservative — when in doubt, leave a NOTE blockquote rather than guessing." >> "$LOG" 2>&1
 
 # Belt-and-braces: if anything is unstaged, commit it
 cd "$VAULT"

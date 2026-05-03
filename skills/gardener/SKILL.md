@@ -1,11 +1,11 @@
 ---
-name: brain-gardener
-description: Process the brain vault — file inbox captures into atomic notes, add wiki-links, dedupe, update MOCs, and commit. Run on a schedule (cron or routine), not by hand. Reads ~/brain/meta/gardener-rules.md for heuristics.
+name: gardener
+description: Process the garden vault — file inbox captures into atomic notes, add wiki-links, dedupe, update MOCs, and commit. Run on a schedule (cron or routine), not by hand. Reads ~/garden/meta/gardener-rules.md for heuristics.
 ---
 
-# brain-gardener
+# gardener
 
-The maintenance agent for `~/brain/`. Reads inbox, files notes, links, dedupes, summarizes. Designed to run unattended on a schedule.
+The maintenance agent for `~/garden/`. Reads inbox, files notes, links, dedupes, summarizes. Designed to run unattended on a schedule.
 
 ## Phases
 
@@ -14,16 +14,16 @@ Run in order. Stop after any phase if no work to do.
 ### 1. Pull
 
 ```bash
-cd ~/brain && git pull --quiet --rebase
+cd ~/garden && git pull --quiet --rebase
 ```
 
 ### 2. Read rules
 
-Read `~/brain/meta/gardener-rules.md` first. These heuristics override defaults below if they conflict.
+Read `~/garden/meta/gardener-rules.md` first. These heuristics override defaults below if they conflict.
 
 ### 3. Process inbox
 
-For each file in `~/brain/inbox/`:
+For each file in `~/garden/inbox/`:
 1. Read the capture.
 2. Decide the type: `note`, `decision`, `learning`, `person`, or `project`.
 3. Write atomic note(s) to the appropriate folder with proper frontmatter.
@@ -38,9 +38,9 @@ Find unlinked references — notes that mention a known wiki-target by plain tex
 
 ```bash
 # For each project MOC
-for project in ~/brain/projects/*.md; do
+for project in ~/garden/projects/*.md; do
   name=$(basename "$project" .md)
-  grep -rln "$name" ~/brain --include="*.md" --exclude-dir=.git | \
+  grep -rln "$name" ~/garden --include="*.md" --exclude-dir=.git | \
     xargs grep -L "\[\[$name\]\]"
 done
 ```
@@ -55,7 +55,7 @@ Spot near-duplicate notes (similar title or significant body overlap). Merge int
 
 For each project/topic MOC, update the "Active threads" or "Recent" section based on notes updated in the last 14 days.
 
-Update `~/brain/00-index.md` "Recent" section with one line per significant change this run.
+Update `~/garden/00-index.md` "Recent" section with one line per significant change this run.
 
 ### 7. Decay
 
@@ -64,7 +64,7 @@ If today is the 1st of the month: consolidate previous month's daily notes into 
 ### 8. Commit + push
 
 ```bash
-cd ~/brain && git add -A && git commit -m "gardener: <date> — <summary of changes>" && git push
+cd ~/garden && git add -A && git commit -m "gardener: <date> — <summary of changes>" && git push
 ```
 
 If no changes, skip commit.
@@ -79,5 +79,5 @@ If no changes, skip commit.
 
 Headless via cron / routine:
 ```bash
-claude -p "Run the brain-gardener skill. Today is $(date +%Y-%m-%d)."
+claude -p "Run the gardener skill. Today is $(date +%Y-%m-%d)."
 ```
