@@ -2,6 +2,8 @@
 
 An LLM-tended second brain. Plain markdown vault, atomic notes, wiki-links, Obsidian-readable, agent-maintained.
 
+Inspired by [Andrej Karpathy](https://x.com/karpathy)'s thinking on LLM-tended notes.
+
 This repo is the **framework**: skills, scripts, templates, install. Your actual notes live in a separate (private) vault repo that this scaffolds.
 
 ## Philosophy
