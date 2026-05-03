@@ -44,7 +44,7 @@ fi
 
 section "3. Skills (symlinks into ~/.claude/skills/)"
 mkdir -p "$SKILLS_DIR"
-for skill in garden-capture garden-recall gardener; do
+for skill in garden-capture garden-recall garden-voice gardener; do
   src="$REPO_DIR/skills/$skill"
   dst="$SKILLS_DIR/$skill"
   if [ -L "$dst" ]; then

@@ -77,6 +77,7 @@ gardenkit/
 ├── skills/
 │   ├── garden-capture/SKILL.md  ← drop a thought into inbox/
 │   ├── garden-recall/SKILL.md   ← search the vault, surface notes
+│   ├── garden-voice/SKILL.md    ← derive voice profile from your real messages
 │   └── gardener/SKILL.md        ← scheduled maintenance
 ├── scripts/
 │   ├── session-start.sh         ← SessionStart hook: pull, inject index/identity
@@ -85,7 +86,7 @@ gardenkit/
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md
 │   ├── README.md
-│   ├── meta/{user,soul,gardener-rules}.md
+│   ├── meta/{user,soul,voice,gardener-rules}.md
 │   └── projects/EXAMPLE.md
 └── docs/
     ├── ARCHITECTURE.md          ← the design and reasoning
