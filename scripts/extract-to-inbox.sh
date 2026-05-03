@@ -53,7 +53,7 @@ REASON=$(read_field reason)              # SessionEnd
 TRIGGER=$(read_field trigger)            # PreCompact (manual|auto)
 CUSTOM_INSTRUCTIONS=$(read_field custom_instructions)  # PreCompact (manual)
 
-# Sanity checks — exit 0 (don't fail the hook chain)
+# Sanity checks.exit 0 (don't fail the hook chain)
 if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ]; then
   echo "$(date): extract[$SOURCE_LABEL]: no transcript at '$TRANSCRIPT_PATH', skipping" >> "$LOG"
   exit 0
@@ -123,7 +123,7 @@ You are extracting noteworthy items from a conversation transcript into a person
 
 Read the transcript below and extract ONLY genuinely noteworthy items in these categories:
 - Decisions made (with reasoning)
-- Things learned — especially non-obvious facts
+- Things learned.especially non-obvious facts
 - Open questions worth tracking
 - Factual claims about projects, people, or tools (state, status, opinions held)
 - Useful references (URLs with one-line description)
@@ -139,7 +139,7 @@ source: $SOURCE_TAG
 
 # <one-line summary>
 
-<the content — keep it raw, the gardener will refine and link it later>
+<the content, raw. The gardener will refine and link it later>
 
 Context: <project | person | topic if known>
 
@@ -150,7 +150,7 @@ SKIP entirely:
 - Restatements of things already in the vault
 - Speculation without commitment
 - Trivial or redundant items
-- Step-by-step implementation details — only the high-level decision matters
+- Step-by-step implementation details (only the high-level decision matters)
 
 Cap at $MAX_ITEMS captures maximum. Pick the most important.
 
@@ -170,7 +170,7 @@ EOF
   cd "$VAULT"
   if [ -n "$(git status --porcelain inbox/ 2>/dev/null)" ]; then
     git add inbox/ 2>/dev/null && \
-      git commit -m "capture: $SOURCE_TAG — auto from session $SESSION_ID" -q 2>/dev/null && \
+      git commit -m "capture: $SOURCE_TAG.auto from session $SESSION_ID" -q 2>/dev/null && \
       echo "$(date): extract[$SOURCE_LABEL]: committed new captures" >> "$LOG"
   else
     echo "$(date): extract[$SOURCE_LABEL]: no new captures written" >> "$LOG"

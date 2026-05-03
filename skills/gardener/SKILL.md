@@ -1,6 +1,6 @@
 ---
 name: gardener
-description: Process the garden vault — file inbox captures into atomic notes, add wiki-links, dedupe, update MOCs, and commit. Run on a schedule (cron or routine), not by hand. Reads ~/garden/meta/gardener-rules.md for heuristics.
+description: Process the garden vault: file inbox captures into atomic notes, add wiki-links, dedupe, update MOCs, and commit. Run on a schedule (cron or routine), not by hand. Reads ~/garden/meta/gardener-rules.md for heuristics.
 ---
 
 # gardener
@@ -34,7 +34,7 @@ If a capture is ambiguous or needs human review, leave a `> NOTE:` blockquote in
 
 ### 4. Link maintenance
 
-Find unlinked references — notes that mention a known wiki-target by plain text but don't link it:
+Find unlinked references: notes that mention a known wiki-target by plain text but don't link it:
 
 ```bash
 # For each project MOC
@@ -64,7 +64,7 @@ If today is the 1st of the month: consolidate previous month's daily notes into 
 ### 8. Commit + push
 
 ```bash
-cd ~/garden && git add -A && git commit -m "gardener: <date> — <summary of changes>" && git push
+cd ~/garden && git add -A && git commit -m "gardener: <date>: <summary of changes>" && git push
 ```
 
 If no changes, skip commit.

@@ -4,7 +4,7 @@ The gardener is an LLM agent. Cron just triggers it.
 
 ## Default: local cron
 
-A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headlessly. Uses your existing Claude Code subscription — no separate billing.
+A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headlessly. Uses your existing Claude Code subscription: no separate billing.
 
 ### Setup
 
@@ -28,9 +28,9 @@ crontab -l | grep gardener
 
 ### Cadences worth considering
 
-- **Daily, 3 AM** — full pass. Good default.
-- **Hourly** — inbox processing only. Add a second entry that calls a lighter variant if you capture a lot during the day.
-- **Weekly, Sunday** — weekly review synthesis (optional second cron entry with `--review` flag, or a dedicated script).
+- **Daily, 3 AM**: full pass. Good default.
+- **Hourly**: inbox processing only. Add a second entry that calls a lighter variant if you capture a lot during the day.
+- **Weekly, Sunday**: weekly review synthesis (optional second cron entry with `--review` flag, or a dedicated script).
 
 ### Notes
 
@@ -64,4 +64,4 @@ cd ~/garden && git log --grep '^gardener:' --oneline | head
 
 **`git push failed`:** the cron user can't auth to GitHub. Make sure your SSH key works headlessly (`ssh -T git@github.com` from a fresh shell), or use a credential helper.
 
-**Gardener never commits anything:** check the log. The gardener is conservative — if there's nothing in `inbox/` and no link/dedupe work to do, it'll exit cleanly with no changes.
+**Gardener never commits anything:** check the log. The gardener is conservative: if there's nothing in `inbox/` and no link/dedupe work to do, it'll exit cleanly with no changes.

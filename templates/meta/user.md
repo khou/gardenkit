@@ -15,14 +15,14 @@ _This file is loaded at every session start. It tells the agent who you are and 
 
 ## Role & context
 
-_To fill in. Ask Claude to interview you: "Ask me 15 questions to fill out my user.md — role, what I'm building, who I work with, technical background, decision style."_
+_To fill in. Ask Claude to interview you: "Ask me 15 questions to fill out my user.md: role, what I'm building, who I work with, technical background, decision style."_
 
 ## Working preferences
 
 _To fill in. Suggested prompts to elicit:_
-- Communication style — terse vs. expansive, formal vs. casual
+- Communication style: terse vs. expansive, formal vs. casual
 - Code style preferences (languages, frameworks, naming, comments)
-- How you make decisions — ship fast vs. measure twice
+- How you make decisions: ship fast vs. measure twice
 - What you want Claude to never do
 - What you want Claude to always do
 

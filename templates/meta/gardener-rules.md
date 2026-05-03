@@ -33,7 +33,7 @@ Heuristics the gardener follows when processing the vault. Update as you notice 
 
 - When a note mentions a project name, person, or known tag, ensure the wiki-link exists.
 - Never create a new MOC unless the topic has 3+ supporting notes.
-- Backlinks accumulate naturally — don't manually maintain them.
+- Backlinks accumulate naturally: don't manually maintain them.
 
 ## Dedupe
 

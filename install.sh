@@ -44,13 +44,14 @@ fi
 
 section "3. Skills (symlinks into ~/.claude/skills/)"
 mkdir -p "$SKILLS_DIR"
-for skill in garden-capture garden-recall garden-voice gardener; do
-  src="$REPO_DIR/skills/$skill"
+for src in "$REPO_DIR"/skills/garden-* "$REPO_DIR"/skills/gardener; do
+  [ -d "$src" ] || continue
+  skill=$(basename "$src")
   dst="$SKILLS_DIR/$skill"
   if [ -L "$dst" ]; then
     say "$skill: symlink exists"
   elif [ -e "$dst" ]; then
-    say "$skill: WARN — non-symlink exists at $dst, leaving alone (move it aside to install)"
+    say "$skill: WARN, non-symlink exists at $dst, leaving alone (move it aside to install)"
   else
     ln -s "$src" "$dst"
     say "$skill: linked"
@@ -98,7 +99,7 @@ else
     if grep -qF "$cmd" "$SETTINGS"; then
       say "$name hook already wired"
     else
-      say "$name hook NOT in settings.json — add manually under .hooks.$name:"
+      say "$name hook NOT in settings.json. Add manually under .hooks.$name:"
       say "  { \"hooks\": [{ \"type\": \"command\", \"command\": \"$cmd\" }] }"
     fi
   done
@@ -109,9 +110,11 @@ chmod +x "$REPO_DIR/scripts/"*.sh
 say "done"
 
 section "Next steps"
-say "1. Fill ~/garden/meta/user.md — ask Claude: 'Interview me for my user.md (15 questions).'"
-say "2. Push the vault to a private GitHub repo:"
+say "1. Fill ~/garden/meta/user.md. Ask Claude: 'Interview me for my user.md (15 questions).'"
+say "2. Bootstrap your voice profile. Ask Claude: 'init my voice from Slack' (invokes garden-voice)."
+say "3. Bootstrap your knowledge graph. Ask Claude: 'init my garden from connected sources' (invokes garden-bootstrap)."
+say "4. Push the vault to a private GitHub repo:"
 say "     cd ~/garden && git remote add origin git@github.com:<you>/garden.git && git push -u origin main"
-say "3. Schedule the gardener — see $REPO_DIR/docs/SCHEDULING.md"
+say "5. Schedule the gardener. See $REPO_DIR/docs/SCHEDULING.md"
 say ""
 say "Restart Claude Code to activate the SessionStart hook."

@@ -56,14 +56,14 @@ A `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/use
 ### Capture (during/after session)
 The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
 - The user explicitly: "capture this"
-- The `SessionEnd` hook — when a session ends, extracts noteworthy items from the transcript into inbox files
-- The `PreCompact` hook — when context is about to be compacted (auto or manual `/compact`), captures items from the soon-to-be-truncated portion before they're lost. Honors `custom_instructions` from manual compactions as a hint to the extractor.
+- The `SessionEnd` hook: when a session ends, extracts noteworthy items from the transcript into inbox files
+- The `PreCompact` hook: when context is about to be compacted (auto or manual `/compact`), captures items from the soon-to-be-truncated portion before they're lost. Honors `custom_instructions` from manual compactions as a hint to the extractor.
 
 Both auto-capture hooks share `scripts/extract-to-inbox.sh`, parameterized by source label. The script reads the transcript, pipes user+assistant text through `claude -p` with a focused extraction prompt, writes one inbox file per noteworthy item, and runs the heavy work in the background so the hook returns immediately.
 
 Tunable via env vars:
-- `GARDEN_CAPTURE_MIN_WORDS` (default 200) — skip extraction if transcript is shorter
-- `GARDEN_CAPTURE_MAX_ITEMS` (default 5) — cap captures per run
+- `GARDEN_CAPTURE_MIN_WORDS` (default 200): skip extraction if transcript is shorter
+- `GARDEN_CAPTURE_MAX_ITEMS` (default 5): cap captures per run
 
 Inbox files stay raw. The gardener decides what to keep and where to file it.
 
@@ -84,7 +84,7 @@ The gardener is the agent. Cron/routine is just the alarm clock.
 
 Separate from `soul.md` (which controls how the agent responds *to* the user), `meta/voice.md` documents how the user actually writes. It's populated by the `garden-voice` skill, which samples the user's sent messages from Slack (or other configured sources), redacts proper nouns/numbers/URLs, synthesizes style patterns, and anchors them with short example snippets.
 
-Used whenever the agent drafts something *as* the user — Slack replies, emails, PRs, tweets, blog posts. `soul.md` instructs the agent to load `voice.md` first for any such task.
+Used whenever the agent drafts something *as* the user: Slack replies, emails, PRs, tweets, blog posts. `soul.md` instructs the agent to load `voice.md` first for any such task.
 
 **Load-on-demand.** Voice doesn't get injected by the `SessionStart` hook (would bloat context for tasks that don't need it). The agent reads it only when a drafting task surfaces.
 
@@ -92,7 +92,7 @@ Per the source material, having a calibrated voice profile is reportedly the sin
 
 ## Why hooks instead of skills-as-commands
 
-A second brain that requires manual invocation isn't a brain — it's a filing cabinet. Hooks make recall and capture *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
+A second brain that requires manual invocation isn't a brain: it's a filing cabinet. Hooks make recall and capture *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
 
 Skills still exist as the **library functions** that hooks (and routines) call. They're also the manual escape hatch when automation misses something.
 
@@ -100,8 +100,8 @@ Skills still exist as the **library functions** that hooks (and routines) call. 
 
 | Concern | Local (Claude Code) | Cloud (Cowork / routine) |
 |---|---|---|
-| Session-start recall | `SessionStart` hook (this repo) | N/A — Cowork loads context differently |
-| End-of-session capture | `Stop` hook (this repo) | N/A |
+| Session-start recall | `SessionStart` hook (this repo) | N/A: Cowork loads context differently |
+| End-of-session capture | `SessionEnd` + `PreCompact` hooks (this repo) | N/A |
 | Gardener | Local cron + headless `claude -p` | Routine via `mcp__scheduled-tasks` or `schedule` skill |
 | Vault access | Direct local FS | GitHub plugin reads/writes the same git repo |
 

@@ -5,18 +5,18 @@ updated: YYYY-MM-DD
 
 # Index
 
-The vault entry point. Loaded at session start. Keep this file short — it's a directory of pointers, not content.
+The vault entry point. Loaded at session start. Keep this file short: it's a directory of pointers, not content.
 
 ## Identity
 
-- [[meta/user]] — who you are, how you work, preferences
-- [[meta/soul]] — agent persona when responding
-- [[meta/voice]] — your writing style (load on demand for drafting; populated by `garden-voice` skill)
-- [[meta/gardener-rules]] — heuristics for the gardener
+- [[meta/user]]: who you are, how you work, preferences
+- [[meta/soul]]: agent persona when responding
+- [[meta/voice]]: your writing style (load on demand for drafting; populated by `garden-voice` skill)
+- [[meta/gardener-rules]]: heuristics for the gardener
 
 ## Active projects
 
-- [[projects/EXAMPLE]] — replace with your real projects
+- [[projects/EXAMPLE]]: replace with your real projects
 
 ## Recent (auto-updated by gardener)
 

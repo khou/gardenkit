@@ -23,14 +23,14 @@ updated: YYYY-MM-DD
 
 ## Folders
 
-- `notes/` — atomic notes on any topic
-- `projects/` — one MOC per project; links to relevant notes/decisions
-- `people/` — one file per person worth tracking
-- `decisions/` — ADR-style: why we decided X
-- `daily/` — one file per day, append-as-you-go
-- `learnings/` — TIL-style facts worth keeping
-- `inbox/` — raw captures awaiting gardener processing
-- `meta/` — vault config, identity files, gardener rules
+- `notes/`: atomic notes on any topic
+- `projects/`: one MOC per project; links to relevant notes/decisions
+- `people/`: one file per person worth tracking
+- `decisions/`: ADR-style: why we decided X
+- `daily/`: one file per day, append-as-you-go
+- `learnings/`: TIL-style facts worth keeping
+- `inbox/`: raw captures awaiting gardener processing
+- `meta/`: vault config, identity files, gardener rules
 
 ## Entry point
 

@@ -15,7 +15,7 @@ if [ -d "$VAULT/.git" ]; then
   fi
 fi
 
-# Emit index and identity. Keep small — this goes into every session.
+# Emit index and identity. Keep small.this goes into every session.
 echo "<garden-vault>"
 echo ""
 echo "## ~/garden/00-index.md"

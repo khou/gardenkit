@@ -38,12 +38,12 @@ Pulls relevant notes from `~/garden/` for a query. Used by the SessionStart hook
 
 - User asks "what did we decide about X"
 - User asks about state of a project, person, or topic
-- Before answering any question where the vault might already hold context — silent recall, then synthesize
+- Before answering any question where the vault might already hold context: silent recall, then synthesize
 
 ## Don't
 
-- Don't read every match — top-ranked few only.
-- Don't guess if the vault has nothing — say so plainly: "Nothing in the vault on that yet."
+- Don't read every match: top-ranked few only.
+- Don't guess if the vault has nothing: say so plainly: "Nothing in the vault on that yet."
 - Don't write to the vault from this skill. Recall is read-only.
 
 ## Speed

@@ -37,13 +37,13 @@ fi
 
 # Invoke gardener skill via headless Claude
 echo "=== gardener run $DATE ===" >> "$LOG"
-claude -p "Run the gardener skill on the vault at $VAULT. Today is $DATE. Process inbox, maintain links, dedupe, update MOCs, and commit + push. Be thorough but conservative — when in doubt, leave a NOTE blockquote rather than guessing." >> "$LOG" 2>&1
+claude -p "Run the gardener skill on the vault at $VAULT. Today is $DATE. Process inbox, maintain links, dedupe, update MOCs, and commit + push. Be thorough but conservative.when in doubt, leave a NOTE blockquote rather than guessing." >> "$LOG" 2>&1
 
 # Belt-and-braces: if anything is unstaged, commit it
 cd "$VAULT"
 if [ -n "$(git status --porcelain)" ]; then
   git add -A
-  git commit -m "gardener: $DATE — auto-commit (uncommitted residue)" -q
+  git commit -m "gardener: $DATE.auto-commit (uncommitted residue)" -q
 fi
 
 # Push if remote configured
