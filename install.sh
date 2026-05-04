@@ -109,12 +109,46 @@ section "5. Make scripts executable"
 chmod +x "$REPO_DIR/scripts/"*.sh
 say "done"
 
+section "6. Headless permissions for the cron-driven gardener"
+say "The gardener runs in cron with no TTY. To do its work without blocking on"
+say "permission prompts, it needs --dangerously-skip-permissions, which gives"
+say "Claude autonomous tool access scoped to ~/garden and your git remote."
+say ""
+say "Without it: each cron run plans changes but stops at the first prompt."
+say "With it:    each cron run executes the plan unattended."
+say ""
+say "Worst case: a confused gardener commit you can revert. Vault is contained,"
+say "git push targets only your private vault repo."
+say ""
+ZSHRC="$HOME/.zshrc"
+if grep -q "GARDENER_AUTO_APPROVE" "$ZSHRC" 2>/dev/null; then
+  say "Already enabled (GARDENER_AUTO_APPROVE found in ~/.zshrc). Skipping."
+else
+  printf "  Enable autonomous mode for cron runs? [y/N] "
+  read -r AUTO_APPROVE_ANS </dev/tty || AUTO_APPROVE_ANS=""
+  if [[ "$AUTO_APPROVE_ANS" =~ ^[Yy] ]]; then
+    {
+      echo ""
+      echo "# gardenkit: auto-approve cron-driven gardener runs"
+      echo "export GARDENER_AUTO_APPROVE=1"
+    } >> "$ZSHRC"
+    say "Added export GARDENER_AUTO_APPROVE=1 to ~/.zshrc."
+    say "Run 'source ~/.zshrc' or open a new terminal so cron picks it up."
+  else
+    say "Skipped. To enable later, add this to ~/.zshrc:"
+    say "    export GARDENER_AUTO_APPROVE=1"
+  fi
+fi
+
 section "Next steps"
 say "1. Fill ~/garden/meta/user.md. Ask Claude: 'Interview me for my user.md (15 questions).'"
 say "2. Bootstrap your voice profile. Ask Claude: 'init my voice from Slack' (invokes garden-voice)."
 say "3. Bootstrap your knowledge graph. Ask Claude: 'init my garden from connected sources' (invokes garden-bootstrap)."
 say "4. Push the vault to a private GitHub repo:"
 say "     cd ~/garden && git remote add origin git@github.com:<you>/garden.git && git push -u origin main"
-say "5. Schedule the gardener. See $REPO_DIR/docs/SCHEDULING.md"
+say "5. Log in to Claude headlessly so cron-spawned 'claude -p' has tokens:"
+say "     claude /login"
+say "   (If you have ANTHROPIC_API_KEY exported, unset it first — env-var auth overrides your subscription.)"
+say "6. Schedule the gardener. See $REPO_DIR/docs/SCHEDULING.md"
 say ""
 say "Restart Claude Code to activate the SessionStart hook."
