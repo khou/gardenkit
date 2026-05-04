@@ -48,8 +48,17 @@ if git remote get-url origin >/dev/null 2>&1; then
 fi
 
 # Invoke gardener skill via headless Claude.
+# Cron has no TTY to approve permission prompts. If GARDENER_AUTO_APPROVE=1
+# is exported in the user's shell profile, pass --dangerously-skip-permissions
+# so the gardener can actually do its work. Without it, the model plans
+# changes each run but blocks at the first prompt. install.sh asks the user
+# whether to enable this at setup time; default is off.
+HEADLESS_FLAG=""
+if [ "${GARDENER_AUTO_APPROVE:-}" = "1" ]; then
+  HEADLESS_FLAG="--dangerously-skip-permissions"
+fi
 echo "=== gardener run $DATE ===" >> "$LOG"
-claude -p "Run the gardener skill on the vault at $VAULT. Today is $DATE. Process inbox, maintain links, dedupe, update MOCs, and commit + push. Be thorough but conservative. When in doubt, leave a NOTE blockquote rather than guessing." >> "$LOG" 2>&1
+claude -p $HEADLESS_FLAG "Run the gardener skill on the vault at $VAULT. Today is $DATE. Process inbox, maintain links, dedupe, update MOCs, and commit + push. Be thorough but conservative. When in doubt, leave a NOTE blockquote rather than guessing." >> "$LOG" 2>&1
 
 # Belt-and-braces: if anything is unstaged, commit it
 cd "$VAULT"

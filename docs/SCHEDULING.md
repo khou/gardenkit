@@ -16,6 +16,13 @@ A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headless
 
 2. **Unset any `ANTHROPIC_API_KEY` in your shell config.** The CLI prefers env-var auth over your subscription. If a key is set and unfunded, cron runs hit `Credit balance is too low` instead of using your subscription. Check with `echo "${ANTHROPIC_API_KEY:+set}"` and remove from `~/.zshrc` if present.
 
+3. **Decide on autonomous mode.** Cron has no TTY, so the gardener stops at every permission prompt unless you opt in to `--dangerously-skip-permissions`. The script reads `GARDENER_AUTO_APPROVE` to decide:
+   ```bash
+   # Add to ~/.zshrc to enable:
+   export GARDENER_AUTO_APPROVE=1
+   ```
+   `install.sh` prompts you for this at setup. Without it, the gardener will plan changes each run but block before executing. With it, the gardener has free rein inside `~/garden` and on git operations.
+
 ### Setup
 
 Edit your crontab:
