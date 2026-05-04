@@ -6,6 +6,16 @@ The gardener is an LLM agent. Cron just triggers it.
 
 A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headlessly. Uses your existing Claude Code subscription: no separate billing.
 
+### Prerequisites
+
+1. **Log in to Claude headlessly** so the cron-spawned `claude -p` finds OAuth tokens:
+   ```bash
+   claude /login
+   ```
+   Skip this and the gardener will silently fail with `Not logged in · Please run /login` in the log.
+
+2. **Unset any `ANTHROPIC_API_KEY` in your shell config.** The CLI prefers env-var auth over your subscription. If a key is set and unfunded, cron runs hit `Credit balance is too low` instead of using your subscription. Check with `echo "${ANTHROPIC_API_KEY:+set}"` and remove from `~/.zshrc` if present.
+
 ### Setup
 
 Edit your crontab:
@@ -14,10 +24,10 @@ Edit your crontab:
 crontab -e
 ```
 
-Add (daily at 3 AM):
+Add (every 4 hours, off-minute to avoid stampedes):
 
 ```
-0 3 * * * /Users/<you>/github/gardenkit/scripts/gardener-run.sh
+7 */4 * * * /Users/<you>/github/gardenkit/scripts/gardener-run.sh
 ```
 
 Verify it's installed:
@@ -28,8 +38,9 @@ crontab -l | grep gardener
 
 ### Cadences worth considering
 
-- **Daily, 3 AM**: full pass. Good default.
-- **Hourly**: inbox processing only. Add a second entry that calls a lighter variant if you capture a lot during the day.
+- **Every 4 hours**: good default once external ingestion (Gmail/Slack/Drive) is wired up. Keeps the brain reasonably fresh without burning through subscription tokens.
+- **Daily, 3 AM**: minimal pass. Good if you mostly capture inline and don't lean on auto-ingestion.
+- **Hourly or 30 min**: aggressive — only worth it if you're actively writing to inbox throughout the day.
 - **Weekly, Sunday**: weekly review synthesis (optional second cron entry with `--review` flag, or a dedicated script).
 
 ### Notes
@@ -60,8 +71,14 @@ cd ~/garden && git log --grep '^gardener:' --oneline | head
 
 ## Troubleshooting
 
+**`Not logged in · Please run /login` in log:** OAuth tokens aren't where headless `claude -p` looks. Run `claude /login` from a regular terminal, then wait for the next cron firing.
+
+**`Credit balance is too low` in log:** an `ANTHROPIC_API_KEY` is set and the CLI is using it instead of your subscription. Check `echo "${ANTHROPIC_API_KEY:+set}"`, then remove the export from `~/.zshrc` (or `~/.zshenv`, `~/.zprofile`) and restart your shell.
+
 **`claude: command not found` in log:** the cron PATH isn't picking up Claude. Edit `gardener-run.sh` to source the right profile, or set PATH explicitly at the top.
 
 **`git push failed`:** the cron user can't auth to GitHub. Make sure your SSH key works headlessly (`ssh -T git@github.com` from a fresh shell), or use a credential helper.
 
 **Gardener never commits anything:** check the log. The gardener is conservative: if there's nothing in `inbox/` and no link/dedupe work to do, it'll exit cleanly with no changes.
+
+**Log file never gets created at all (no `~/garden/.gardener-log`):** cron isn't reaching the script's first log write. Most likely macOS Full Disk Access — System Settings → Privacy & Security → Full Disk Access → add `/usr/sbin/cron`. Verify cron itself is firing with `log show --predicate 'process == "cron"' --last 1h | grep gardener`.

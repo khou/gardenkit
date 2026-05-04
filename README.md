@@ -82,7 +82,12 @@ It will **not** overwrite existing files in your vault or remove anything.
    git remote add origin git@github.com:<you>/garden.git
    git push -u origin main
    ```
-5. **Schedule the gardener** via local cron (or optionally a cloud routine), see [docs/SCHEDULING.md](docs/SCHEDULING.md).
+5. **Log in to Claude headlessly** so the scheduled gardener can invoke `claude -p` without a TTY:
+   ```bash
+   claude /login
+   ```
+   This stores OAuth tokens that the cron-spawned `claude -p` will read. Without this, the gardener fails with `Not logged in · Please run /login` in `~/garden/.gardener-log`. If you have an `ANTHROPIC_API_KEY` exported in your shell, unset it first — the CLI prefers env-var auth over your subscription, and cron will bill that key instead of using your Claude subscription.
+6. **Schedule the gardener** via local cron (or optionally a cloud routine), see [docs/SCHEDULING.md](docs/SCHEDULING.md).
 
 ## Layout
 
