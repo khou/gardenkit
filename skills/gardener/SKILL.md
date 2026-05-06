@@ -19,19 +19,11 @@ cd ~/garden && git pull --quiet --rebase
 
 ### 2. Read rules
 
-Read `~/garden/meta/gardener-rules.md` first. These heuristics override defaults below if they conflict. Also read `~/garden/meta/derived-taxonomies.md` and `~/garden/meta/migration-state.md` so the gardener knows what derived MOC types are currently active and what schema migrations are in flight.
+Read `~/garden/meta/gardener-rules.md`, `~/garden/meta/derived-taxonomies.md`, and `~/garden/meta/migration-state.md`. Heuristics in `gardener-rules.md` override defaults below if they conflict.
 
-### 3. Schema migration / drift cleanup
+### 3. Schema migration
 
-Bring existing files in line with the current convention before doing new work. The point: when a user pulls a fresh gardenkit version, the next run(s) should clean their vault up to the new standard without hand-editing.
-
-1. Read the authoritative meta files (this is step 2). Compare against `meta/migration-state.md`'s "Last seen meta-file versions". If any have changed, record the diff.
-2. Run the auto-migrations described in `meta/gardener-rules.md` section "Schema migration": missing required frontmatter fields, renamed typed edges, folder moves, deprecated frontmatter values, stale derived MOCs.
-3. For anything that needs human review (conflicts, content splits, deletions, irreversible changes), leave a `> NOTE: migration: <issue>` blockquote at the top of the affected file rather than guessing.
-4. Cap work at ~50 files per run. Track progress in `meta/migration-state.md` in the "In-flight migrations" table; continue on subsequent passes.
-5. Append one line to `meta/migration-state.md`'s "Log" heading describing what migrated this pass.
-
-If `meta/migration-state.md` doesn't exist (older vault), create it from the gardenkit template before running this phase.
+Run the rules in `gardener-rules.md` section "Schema migration": diff `meta/migration-state.md`'s "Last seen meta-file versions" against the current rules and template files; auto-migrate what can be auto-migrated (capped ~50 files/run); flag the rest with `> NOTE: migration:` blockquotes. Append a row to `meta/migration-state.md`'s in-flight table for any new migration started this pass and a log line summarizing what ran. Update the "Last seen meta-file versions" table to reflect the current state at the end of the phase.
 
 ### 4. Process inbox
 
@@ -83,14 +75,7 @@ Use `grep`, `find`, and `wc` via the Bash tool however suits the situation. YAML
 
 ### 8. Curate derived taxonomies
 
-The gardener owns the derived MOC types in `meta/derived-taxonomies.md`. Each pass:
-
-1. **Scan for new candidates.** Look for classes of entity that recur across atomic notes (companies, vendors, technologies, geographies, conferences, etc.). If 3+ instances each have 2+ supporting notes (or a single instance has 5+), and aggregating would surface non-trivial connections, introduce a new derived type. Append the introduction to `meta/derived-taxonomies.md`.
-2. **Regenerate active instances.** For each derived MOC type listed in `meta/derived-taxonomies.md`, regenerate every instance from its `derived-from` sources using the type's render template. Replace, don't merge. The body must open with "**Derived MOC. Do not hand-edit.** Edit the underlying notes; this file is regenerated."
-3. **Reconsider merges, splits, retirements.** If two types overlap heavily, propose a merge. If one type has become a junk drawer, propose a split. If a type has fallen below threshold for 2+ consecutive passes, retire it (move files to a date-stamped archive under `meta/`).
-4. **Document every taxonomy change** in `meta/derived-taxonomies.md` change log: introduced / merged / split / retired plus reasoning.
-
-The agent has full discretion here. The meta-rule lives in `meta/gardener-rules.md` section "Derived taxonomies"; the audit trail lives in `meta/derived-taxonomies.md`.
+Run the rules in `gardener-rules.md` section "Derived taxonomies": regenerate every active derived MOC from its `derived-from:` sources using the type's render template; scan for new candidates that cross threshold; reconsider merges/splits/retirements. Document every change in `meta/derived-taxonomies.md`. The agent has full discretion to introduce, merge, split, or retire types based on what the vault currently holds.
 
 ### 9. Update hand-curated MOCs
 
