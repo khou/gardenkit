@@ -3,6 +3,7 @@ type: project
 tags: [example]
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+summary: One-sentence description of what this project is and where it stands.
 ---
 
 # EXAMPLE Project

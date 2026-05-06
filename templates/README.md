@@ -6,7 +6,7 @@ The framework lives at https://github.com/khou/gardenkit. This repo holds your d
 
 ## Conventions
 
-**Atomic notes.** One concept per file. Small.
+**Atomic notes.** One concept per file. Target 50–300 lines; split if longer.
 
 **Link, don't nest.** If a note relates to a project, drop a `[[projects/project-name]]` link rather than putting it in a project folder.
 
@@ -18,8 +18,19 @@ type: note          # note | decision | person | project | daily | learning
 tags: [topic1, topic2]
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+summary: One sentence, ≤140 chars. What you'd learn from reading this. No wiki-links.
+# Optional typed edges (gardener populates when relationships are explicit):
+supersedes:    [decisions/old-decision]   # this replaces those
+depends-on:    [projects/blocking-thing]  # this requires those
+contradicts:   [learnings/old-fact]       # this disagrees with those
+derived-from:  [inbox/source-capture]     # this was synthesized from those
+part-of:       [notes/parent-concept]     # this is a subset of those (often after a split)
 ---
 ```
+
+The `summary:` field is what recall reads first when scanning many notes. The body is only loaded when the summary signals it's worth the tokens. Keep summaries fresh; stale is worse than missing.
+
+The typed edges let recall skip following links when the relationship type already answers the question: a chain of `supersedes` edges doesn't need following if the query is about current state, a `contradicts` edge surfaces tensions, etc. The gardener populates them only when the source material is explicit, never speculatively. Most notes will have plain `[[wiki-links]]` in the body and zero typed edges, and that's fine.
 
 ## Folders
 

@@ -52,10 +52,11 @@ Work through the agreed plan one bullet at a time. Brief status updates between 
 
 Apply the existing vault conventions:
 
-- Atomic notes per the [[README]] rules. One concept per file, small.
-- Frontmatter on every note. Wiki-links to related people / notes / projects.
+- Atomic notes per the [[README]] rules. One concept per file, target 50–300 lines.
+- Frontmatter on every note, including a one-sentence `summary:` field (≤140 chars). Wiki-links in the body for related people / notes / projects.
+- Typed edges (`supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`) when the source material is explicit, never speculatively. Always set `derived-from:` pointing at the source (Drive doc URL, Slack permalink, transcript filename) so provenance is recoverable. List multiple sources for synthesized notes.
 - People files in `people/`, MOCs in `projects/`, atomic notes in `notes/`, decisions in `decisions/`, raw captures in `inbox/`.
-- The gardener will dedupe and link further on its next run.
+- The gardener will dedupe, refresh summaries, and tighten edges on its next run.
 
 ### Step 5: Suggest additional sources
 

@@ -47,7 +47,7 @@ crontab -l | grep gardener
 
 - **Every 4 hours**: good default once external ingestion (Gmail/Slack/Drive) is wired up. Keeps the brain reasonably fresh without burning through subscription tokens.
 - **Daily, 3 AM**: minimal pass. Good if you mostly capture inline and don't lean on auto-ingestion.
-- **Hourly or 30 min**: aggressive — only worth it if you're actively writing to inbox throughout the day.
+- **Hourly or 30 min**: aggressive. Only worth it if you're actively writing to inbox throughout the day.
 - **Weekly, Sunday**: weekly review synthesis (optional second cron entry with `--review` flag, or a dedicated script).
 
 ### Notes
@@ -88,4 +88,4 @@ cd ~/garden && git log --grep '^gardener:' --oneline | head
 
 **Gardener never commits anything:** check the log. The gardener is conservative: if there's nothing in `inbox/` and no link/dedupe work to do, it'll exit cleanly with no changes.
 
-**Log file never gets created at all (no `~/garden/.gardener-log`):** cron isn't reaching the script's first log write. Most likely macOS Full Disk Access — System Settings → Privacy & Security → Full Disk Access → add `/usr/sbin/cron`. Verify cron itself is firing with `log show --predicate 'process == "cron"' --last 1h | grep gardener`.
+**Log file never gets created at all (no `~/garden/.gardener-log`):** cron isn't reaching the script's first log write. Most likely macOS Full Disk Access: System Settings → Privacy & Security → Full Disk Access → add `/usr/sbin/cron`. Verify cron itself is firing with `log show --predicate 'process == "cron"' --last 1h | grep gardener`.
