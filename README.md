@@ -51,13 +51,13 @@ cd ~/github/gardenkit
 
 The installer is idempotent. It will:
 
-1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`.
+1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`. On re-run, top up missing meta files from the latest templates without overwriting your customizations (`cp -n`).
 2. Initialize git in `~/garden/` if not already.
 3. Symlink `skills/garden-*` and `skills/gardener` into `~/.claude/skills/`.
 4. Wire `SessionStart`, `SessionEnd`, and `PreCompact` hooks in `~/.claude/settings.json` (recall + auto-capture on session end and before context compaction).
 5. Make `scripts/*.sh` executable.
 6. Ask whether to enable `GARDENER_AUTO_APPROVE=1` in `~/.zshrc` so the cron-driven gardener can run unattended (default: off; you can enable later).
-7. Print next steps.
+7. Print next steps. If your existing meta files differ from the latest templates, the installer prints a heads-up; the gardener reconciles content drift on its next run.
 
 It will **not** overwrite existing files in your vault or remove anything.
 
@@ -110,7 +110,7 @@ gardenkit/
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md
 │   ├── README.md
-│   ├── meta/{user,soul,gardener-rules}.md
+│   ├── meta/{user,soul,gardener-rules,derived-taxonomies,migration-state}.md
 │   └── projects/EXAMPLE.md
 └── docs/
     ├── ARCHITECTURE.md          ← the design and reasoning

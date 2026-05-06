@@ -19,9 +19,13 @@ cd ~/garden && git pull --quiet --rebase
 
 ### 2. Read rules
 
-Read `~/garden/meta/gardener-rules.md` first. These heuristics override defaults below if they conflict.
+Read `~/garden/meta/gardener-rules.md`, `~/garden/meta/derived-taxonomies.md`, and `~/garden/meta/migration-state.md`. Heuristics in `gardener-rules.md` override defaults below if they conflict.
 
-### 3. Process inbox
+### 3. Schema migration
+
+Run the rules in `gardener-rules.md` section "Schema migration": diff `meta/migration-state.md`'s "Last seen meta-file versions" against the current rules and template files; auto-migrate what can be auto-migrated (capped ~50 files/run); flag the rest with `> NOTE: migration:` blockquotes. Append a row to `meta/migration-state.md`'s in-flight table for any new migration started this pass and a log line summarizing what ran. Update the "Last seen meta-file versions" table to reflect the current state at the end of the phase.
+
+### 4. Process inbox
 
 For each file in `~/garden/inbox/`:
 1. Read the capture.
@@ -40,7 +44,7 @@ For each file in `~/garden/inbox/`:
 
 If a capture is ambiguous or needs human review, leave a `> NOTE:` blockquote in a draft file in `inbox/_review/` instead of guessing.
 
-### 4. Link maintenance
+### 5. Link maintenance
 
 Find unlinked references: notes that mention a known wiki-target by plain text but don't link it:
 
@@ -55,11 +59,11 @@ done
 
 Add wiki-links where they're clearly intended.
 
-### 5. Dedupe
+### 6. Dedupe
 
 Spot near-duplicate notes (similar title or significant body overlap). Merge into the older note. Leave the newer file as a one-line redirect for one cycle, then delete on next run.
 
-### 6. Summary, size, and edge hygiene
+### 7. Summary, size, and edge hygiene
 
 Keep recall cheap by maintaining the per-note `summary:` field, the atomic-size invariant, and the typed edges. Three checks, in order:
 
@@ -69,17 +73,21 @@ Keep recall cheap by maintaining the per-note `summary:` field, the atomic-size 
 
 Use `grep`, `find`, and `wc` via the Bash tool however suits the situation. YAML lists may be inline (`[a, b]`) or block-style; handle both.
 
-### 7. Update MOCs
+### 8. Curate derived taxonomies
+
+Run the rules in `gardener-rules.md` section "Derived taxonomies": regenerate every active derived MOC from its `derived-from:` sources using the type's render template; scan for new candidates that cross threshold; reconsider merges/splits/retirements. Document every change in `meta/derived-taxonomies.md`. The agent has full discretion to introduce, merge, split, or retire types based on what the vault currently holds.
+
+### 9. Update hand-curated MOCs
 
 For each project/topic MOC, update the "Active threads" or "Recent" section based on notes updated in the last 14 days.
 
 Update `~/garden/00-index.md` "Recent" section with one line per significant change this run.
 
-### 8. Decay
+### 10. Decay
 
 If today is the 1st of the month: consolidate previous month's daily notes into `daily/<YYYY-MM>-summary.md` and delete individual dailies (kept in git history).
 
-### 9. Commit + push
+### 11. Commit + push
 
 ```bash
 cd ~/garden && git add -A && git commit -m "gardener: <date>: <summary of changes>" && git push

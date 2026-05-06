@@ -37,13 +37,15 @@ The typed edges let recall skip following links when the relationship type alrea
 ## Folders
 
 - `notes/`: atomic notes on any topic
-- `projects/`: one MOC per project; links to relevant notes/decisions
+- `projects/`: one MOC per project (a "Map of Content": an index file linking to all notes/decisions on that topic). Backlinks make the MOC a live index.
 - `people/`: one file per person worth tracking
 - `decisions/`: ADR-style: why we decided X
 - `daily/`: one file per day, append-as-you-go
 - `learnings/`: TIL-style facts worth keeping
 - `inbox/`: raw captures awaiting gardener processing
-- `meta/`: vault config, identity files, gardener rules
+- `meta/`: vault config, identity files, gardener rules, gardener state (derived-taxonomies and migration-state)
+
+The gardener may also create **derived-MOC folders** (`companies/`, `vendors/`, etc.) when content crosses the threshold for aggregating. These are agent-curated and regenerated each run; the active type roster lives in [[meta/derived-taxonomies]]. Don't hand-edit anything inside derived-MOC folders: edit the underlying atomic notes and the MOC regenerates.
 
 ## Entry point
 

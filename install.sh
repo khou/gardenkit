@@ -25,16 +25,26 @@ section() { printf "\n== %s ==\n" "$*"; }
 
 section "1. Vault at $VAULT"
 if [ -d "$VAULT" ]; then
-  say "exists, skipping seed"
+  say "exists, will top up any missing meta files"
 else
   mkdir -p "$VAULT"/{notes,projects,people,daily,decisions,inbox,learnings,meta}
   cp -n "$REPO_DIR/templates/00-index.md" "$VAULT/00-index.md"
   cp -n "$REPO_DIR/templates/README.md" "$VAULT/README.md"
-  cp -n "$REPO_DIR/templates/meta/user.md" "$VAULT/meta/user.md"
-  cp -n "$REPO_DIR/templates/meta/soul.md" "$VAULT/meta/soul.md"
-  cp -n "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.md"
   cp -n "$REPO_DIR/templates/projects/EXAMPLE.md" "$VAULT/projects/EXAMPLE.md"
   say "seeded from templates"
+fi
+# Top up meta files. cp -n is no-clobber: existing user edits stay.
+mkdir -p "$VAULT/meta"
+cp -n "$REPO_DIR/templates/meta/user.md" "$VAULT/meta/user.md"
+cp -n "$REPO_DIR/templates/meta/soul.md" "$VAULT/meta/soul.md"
+cp -n "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.md"
+cp -n "$REPO_DIR/templates/meta/derived-taxonomies.md" "$VAULT/meta/derived-taxonomies.md"
+cp -n "$REPO_DIR/templates/meta/migration-state.md" "$VAULT/meta/migration-state.md"
+
+# If meta files differ from templates, the gardener will reconcile content
+# drift on its next run; this just surfaces that drift exists.
+if ! diff -rq "$REPO_DIR/templates/meta/" "$VAULT/meta/" >/dev/null 2>&1; then
+  say "meta files differ from templates; gardener will reconcile on next run."
 fi
 
 section "2. Git in vault"

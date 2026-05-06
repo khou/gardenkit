@@ -24,11 +24,15 @@ Light folder structure, navigation by wiki-links:
 ├── learnings/              ← TIL-style facts
 ├── inbox/                  ← raw captures awaiting gardener
 └── meta/
-    ├── user.md             ← who you are, preferences
-    ├── soul.md             ← agent persona
-    ├── voice.md            ← your writing style (added by garden-voice; load on demand)
-    └── gardener-rules.md   ← maintenance heuristics
+    ├── user.md                ← who you are, preferences
+    ├── soul.md                ← agent persona
+    ├── voice.md               ← your writing style (added by garden-voice; load on demand)
+    ├── gardener-rules.md      ← maintenance heuristics
+    ├── derived-taxonomies.md  ← gardener-curated derived MOC types (e.g. companies/)
+    └── migration-state.md     ← gardener-tracked schema migration state
 ```
+
+The gardener may also create top-level **derived-MOC folders** (`companies/`, `vendors/`, etc.) when content crosses the threshold for aggregating. (A MOC, "Map of Content", is an index file that links into a topic; in gardenkit, derived MOCs are agent-curated and regenerated each pass from the atomic notes that mention or are tagged with the topic.) Their type roster lives in `meta/derived-taxonomies.md`.
 
 Folders are *templates*, not topics. A note about a project goes in `notes/` and links to `[[projects/<name>]]`. Backlinks make the project page a live index.
 
@@ -59,11 +63,12 @@ Three rules carry the system:
 
 ## Schema design
 
-gardenkit uses three layers of structure:
+gardenkit uses four layers of structure. The first three apply to atomic notes; the fourth is an aggregation pattern over them.
 
-1. **Type frontmatter** (`type: note | decision | person | project | daily | learning`): a light enum, broad enough that the gardener can apply it from context without ambiguity.
+1. **Type frontmatter** (`type: note | decision | person | project | daily | learning`): a light enum, broad enough that the gardener can apply it from context without ambiguity. Derived-MOC types extend this enum; see layer 4.
 2. **One-sentence `summary:`**: the short hook recall reads first to decide whether to load the body.
 3. **Typed edges** in frontmatter: `supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`. Populated by the gardener when the relationship is explicit in the source material; left absent otherwise. The first four describe live relationships between vault notes (the hygiene phase validates them); `derived-from` is provenance and may point at deleted inbox captures or external URLs (not validated). Plain `[[wiki-links]]` in the body remain the default for "related, untyped."
+4. **Derived MOCs** (agent-curated, regenerated each gardener pass): the gardener notices when a class of entity recurs across atomic notes (companies, vendors, technologies, etc.), introduces a folder for the type, and regenerates a MOC per instance from the underlying notes. The set of derived types is itself emergent: agents introduce, merge, split, and retire types as the vault evolves. Audit trail in [[meta/derived-taxonomies]]. The schema-migration phase keeps existing files in sync as conventions change. Derived MOCs are read-only (regenerated, not edited); to change one, edit the underlying atomic notes.
 
 Why typed edges in addition to wiki-links? Plain links waste retrieval token budget. To know whether following one is worth the cost, the AI has to read the target. Typed edges let recall prune up front: a chain of `supersedes` edges doesn't need full traversal when the query is about current state; a `contradicts` edge always warrants showing both sides; `depends-on` matters only when the query is about prerequisites. This is the same scoped-retrieval win that adjacent systems (PARA, the "Infinite Brain" remix) pursue with heavier 10-edge schemas. We took the five edge types that have clear semantics the gardener can apply without speculation.
 
@@ -93,14 +98,16 @@ Inbox files stay raw. The gardener decides what to keep and where to file it.
 ### Gardener (scheduled)
 The `gardener` skill runs unattended on a schedule (cron locally or routine in the cloud). It:
 1. Pulls latest from git
-2. Reads `meta/gardener-rules.md` for current heuristics
-3. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
-4. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
-5. Dedupes near-duplicates
-6. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
-7. Updates MOCs with recent activity
-8. Decays old daily notes into monthly summaries
-9. Commits with `gardener:` prefix and pushes
+2. Reads the authoritative meta files: `meta/gardener-rules.md`, `meta/derived-taxonomies.md`, `meta/migration-state.md`
+3. Runs schema migration: brings drifted files up to the current convention (capped ~50/run), so a freshly-pulled gardenkit version converges the vault over the next runs
+4. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
+5. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
+6. Dedupes near-duplicates
+7. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
+8. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
+9. Updates hand-curated MOCs with recent activity
+10. Decays old daily notes into monthly summaries
+11. Commits with `gardener:` prefix and pushes
 
 The gardener is the agent. Cron/routine is just the alarm clock.
 
