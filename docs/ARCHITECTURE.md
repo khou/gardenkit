@@ -26,6 +26,7 @@ Light folder structure, navigation by wiki-links:
 └── meta/
     ├── user.md             ← who you are, preferences
     ├── soul.md             ← agent persona
+    ├── voice.md            ← your writing style (added by garden-voice; load on demand)
     └── gardener-rules.md   ← maintenance heuristics
 ```
 
@@ -93,12 +94,13 @@ Inbox files stay raw. The gardener decides what to keep and where to file it.
 The `gardener` skill runs unattended on a schedule (cron locally or routine in the cloud). It:
 1. Pulls latest from git
 2. Reads `meta/gardener-rules.md` for current heuristics
-3. Processes inbox → atomic notes with proper frontmatter and wiki-links
+3. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
 4. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
 5. Dedupes near-duplicates
-6. Updates MOCs with recent activity
-7. Decays old daily notes into monthly summaries
-8. Commits with `gardener:` prefix and pushes
+6. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
+7. Updates MOCs with recent activity
+8. Decays old daily notes into monthly summaries
+9. Commits with `gardener:` prefix and pushes
 
 The gardener is the agent. Cron/routine is just the alarm clock.
 

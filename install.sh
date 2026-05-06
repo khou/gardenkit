@@ -3,11 +3,14 @@
 #
 # What it does:
 #   1. Creates ~/garden/ vault from templates if missing
-#   2. Symlinks skills/garden-* into ~/.claude/skills/
-#   3. Wires SessionStart hook in ~/.claude/settings.json
-#   4. Initializes git in ~/garden/ if not already
+#   2. Initializes git in ~/garden/ if not already
+#   3. Symlinks skills/garden-* and skills/gardener into ~/.claude/skills/
+#   4. Wires SessionStart, SessionEnd, and PreCompact hooks in ~/.claude/settings.json
+#   5. Makes scripts/*.sh executable
+#   6. Optionally enables GARDENER_AUTO_APPROVE in ~/.zshrc for headless cron runs
 #
-# Re-run safe. To uninstall, see ./uninstall.sh (or remove symlinks + hook manually).
+# Re-run safe. To uninstall, remove the symlinks in ~/.claude/skills/ and the
+# hook entries in ~/.claude/settings.json manually.
 
 set -euo pipefail
 
