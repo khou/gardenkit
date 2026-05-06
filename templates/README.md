@@ -45,6 +45,8 @@ The typed edges let recall skip following links when the relationship type alrea
 - `inbox/`: raw captures awaiting gardener processing
 - `meta/`: vault config, identity files, gardener rules
 
+The gardener may also create **derived-MOC folders** (`companies/`, `vendors/`, etc.) when content crosses the threshold for aggregating. These are agent-curated and regenerated each run; the active type roster lives in [[meta/derived-taxonomies]]. Don't hand-edit anything inside derived-MOC folders -- edit the underlying atomic notes; the MOC regenerates.
+
 ## Entry point
 
 [[00-index]] is the vault's root. Every session-start loads it.

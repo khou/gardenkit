@@ -110,7 +110,7 @@ gardenkit/
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md
 │   ├── README.md
-│   ├── meta/{user,soul,gardener-rules}.md
+│   ├── meta/{user,soul,gardener-rules,derived-taxonomies,migration-state}.md
 │   └── projects/EXAMPLE.md
 └── docs/
     ├── ARCHITECTURE.md          ← the design and reasoning

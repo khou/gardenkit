@@ -44,6 +44,24 @@ cp -n "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.m
 cp -n "$REPO_DIR/templates/meta/derived-taxonomies.md" "$VAULT/meta/derived-taxonomies.md"
 cp -n "$REPO_DIR/templates/meta/migration-state.md" "$VAULT/meta/migration-state.md"
 
+# Surface meta-file drift if the user's customized files predate sections
+# the latest templates ship. cp -n above kept their edits; the gardener's
+# schema-migration phase needs the new sections to do its job, so flag any
+# missing ones here for review.
+for f in gardener-rules.md derived-taxonomies.md; do
+  user_file="$VAULT/meta/$f"
+  template_file="$REPO_DIR/templates/meta/$f"
+  if [ -f "$user_file" ] && [ -f "$template_file" ]; then
+    if ! cmp -s "$user_file" "$template_file"; then
+      template_sections=$(grep -c '^## ' "$template_file" 2>/dev/null || echo 0)
+      user_sections=$(grep -c '^## ' "$user_file" 2>/dev/null || echo 0)
+      if [ "$template_sections" -gt "$user_sections" ]; then
+        say "note: $user_file has fewer top-level sections than the gardenkit template ($user_sections vs $template_sections); review and merge new sections from $template_file"
+      fi
+    fi
+  fi
+done
+
 section "2. Git in vault"
 if [ -d "$VAULT/.git" ]; then
   say "git already initialized"
