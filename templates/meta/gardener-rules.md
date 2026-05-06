@@ -62,16 +62,21 @@ part-of:       [notes/auth-architecture]              # this is a subset of thes
 
 Format: list of vault-relative paths without `.md` extension and without `[[ ]]` brackets. Values are YAML strings.
 
+**Two flavors:**
+
+- **Live edges** (`supersedes`, `depends-on`, `contradicts`, `part-of`): describe relationships between live notes. Targets must exist in the vault. The hygiene phase validates them and flags broken or stale ones.
+- **Provenance** (`derived-from`): records where a note came from. Often points at an inbox capture (which the gardener deletes after filing; the file lives on in git history), an external URL, or a transcript filename. **Not validated by hygiene** — broken-looking targets are usually correct provenance into git history.
+
 **When to populate:**
 
 - Only when the relationship is **explicit in the source material**. If the capture says "this overrides our earlier decision on X", populate `supersedes`. If it says "we need Y resolved first", populate `depends-on`.
 - Never speculate. A missing edge is fine; a wrong edge is worse than none.
-- Auto-set `derived-from` whenever a note is filed from an inbox capture or external source: point at the capture filename or source URL. List multiple sources if the note synthesizes from several.
+- Auto-set `derived-from` whenever a note is filed from an inbox capture or external source: point at the capture filename or source URL. List multiple sources if the note synthesizes from several. Don't worry that the inbox file gets deleted right after; the path is provenance into git history, not a live link.
 - Auto-set `part-of` whenever you split an oversized note: the splits point at the parent.
 
 **Reverse edges are not stored.** When recall needs "what supersedes this?", it greps for `supersedes:` containing the file. Keeps the gardener from having to maintain both directions.
 
-**Refresh on update.** When editing a note's body, check whether typed edges still hold. Stale edges mislead recall.
+**Refresh on update.** When editing a note's body, check whether live edges still hold. Stale live edges mislead recall. Provenance doesn't change.
 
 ## Dedupe
 
