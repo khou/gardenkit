@@ -61,11 +61,11 @@ Three rules carry the system:
 
 gardenkit uses three layers of structure:
 
-1. **Type frontmatter** (`type: note | decision | person | project | daily | learning`) — light enum, broad enough that the gardener can apply it from context without ambiguity.
-2. **One-sentence `summary:`** — the title-card for AI consumption. Lets recall skim cheaply.
-3. **Typed edges** in frontmatter — `supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`. Populated by the gardener when the relationship is explicit in the source material; left absent otherwise. Plain `[[wiki-links]]` in the body remain the default for "related, untyped."
+1. **Type frontmatter** (`type: note | decision | person | project | daily | learning`): a light enum, broad enough that the gardener can apply it from context without ambiguity.
+2. **One-sentence `summary:`**: the short hook recall reads first to decide whether to load the body.
+3. **Typed edges** in frontmatter: `supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`. Populated by the gardener when the relationship is explicit in the source material; left absent otherwise. Plain `[[wiki-links]]` in the body remain the default for "related, untyped."
 
-Why typed edges in addition to wiki-links? Plain links waste retrieval token budget — to know whether following one is worth the cost, the AI has to read the target. Typed edges let recall prune up front: a `superseded-by` chain doesn't need traversal if the query is about current state; a `contradicts` edge always warrants showing both sides; `depends-on` matters only when the query is about prerequisites. This is the scoped-retrieval win that adjacent systems (PARA, the "Infinite Brain" remix) pursue with heavier 10-edge schemas. We took the five edge types that have clear semantics the gardener can apply without speculation.
+Why typed edges in addition to wiki-links? Plain links waste retrieval token budget. To know whether following one is worth the cost, the AI has to read the target. Typed edges let recall prune up front: a chain of `supersedes` edges doesn't need full traversal when the query is about current state; a `contradicts` edge always warrants showing both sides; `depends-on` matters only when the query is about prerequisites. This is the same scoped-retrieval win that adjacent systems (PARA, the "Infinite Brain" remix) pursue with heavier 10-edge schemas. We took the five edge types that have clear semantics the gardener can apply without speculation.
 
 What gardenkit deliberately doesn't do: put the user in front of the schema. PARA-style systems require categorizing at write time; "Infinite Brain" extends that with 16 node types and 10 typed edges to maintain by hand. That works for people who sit down to model their knowledge in Obsidian. It doesn't fit gardenkit's premise: capture from where work actually happens (Slack, PRs, sessions), and let the gardener file, summarize, and edge-annotate asynchronously. The schema is for the agent; the user just dumps captures.
 

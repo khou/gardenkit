@@ -11,14 +11,14 @@ Heuristics the gardener follows when processing the vault. Update as you notice 
 
 - Each `inbox/` file is a raw capture. Read, classify, file as one or more atomic notes in the appropriate folder.
 - One concept per output note. If a capture covers three things, write three notes.
-- Apply frontmatter: `type`, `tags`, `created`, `updated`, `source`, and `summary` (one sentence, ≤140 chars — see below).
+- Apply frontmatter: `type`, `tags`, `created`, `updated`, and `summary` (one sentence, ≤140 chars; see "Summaries" below). Provenance goes in the `derived-from:` typed edge, not a `source:` field.
 - Add `[[wiki-links]]` to any project, person, or note already in the vault that the new note references.
 - After successful processing, delete the inbox file (it's now in version control history).
 
 ## Atomic-note size
 
 - Target: 50–300 lines per note. If a note exceeds ~300 lines, split it into smaller notes linked from the original (or from a thin MOC if the splits are siblings).
-- The size cap is a forcing function for atomicity, not a hard rule — a coherent reference doc that genuinely needs to stay together can stay together. But default to splitting.
+- The size cap is a forcing function for atomicity, not a hard rule. A coherent reference doc that genuinely needs to stay together can stay together, but default to splitting.
 - When splitting, preserve the original filename for the canonical "parent" concept and give each split a focused name.
 
 ## Summaries
@@ -26,7 +26,7 @@ Heuristics the gardener follows when processing the vault. Update as you notice 
 - Every note must have a `summary:` frontmatter field: one sentence, ≤140 chars, plain language, no wiki-links. It answers "what would I learn from reading this?"
 - The summary lets recall skim many notes cheaply before reading any body in full. Treat it as the note's title-card for AI consumption.
 - When updating a note's body, refresh `summary:` if the gist changed. Stale summaries are worse than missing ones.
-- For inbox captures, write the summary as part of filing — it doesn't need to exist on the raw capture itself.
+- For inbox captures, write the summary as part of filing; it doesn't need to exist on the raw capture itself.
 
 ## What to keep
 
@@ -50,7 +50,7 @@ Heuristics the gardener follows when processing the vault. Update as you notice 
 
 ## Typed edges
 
-Beyond plain wiki-links, the vault uses five typed edge fields in frontmatter. These let recall prune traversal without reading the target note: e.g., a `superseded-by` chain doesn't need following if the query is about current state.
+Beyond plain wiki-links, the vault uses five typed edge fields in frontmatter. These let recall skip following links without reading the target note: e.g., when answering a current-state query, recall can stop following a chain of `supersedes` edges as soon as it has the latest decision.
 
 ```yaml
 supersedes:    [decisions/2024-09-jwt-localstorage]   # this decision replaces these
@@ -60,14 +60,14 @@ derived-from:  [inbox/2026-04-30-security-call]       # this was synthesized fro
 part-of:       [notes/auth-architecture]              # this is a subset of these (often after a split)
 ```
 
-Format: list of vault-relative paths without `.md` extension and without `[[ ]]` brackets — values are YAML strings.
+Format: list of vault-relative paths without `.md` extension and without `[[ ]]` brackets. Values are YAML strings.
 
 **When to populate:**
 
 - Only when the relationship is **explicit in the source material**. If the capture says "this overrides our earlier decision on X", populate `supersedes`. If it says "we need Y resolved first", populate `depends-on`.
 - Never speculate. A missing edge is fine; a wrong edge is worse than none.
-- Auto-set `derived-from` whenever a note is filed from an inbox capture or external source — point at the capture filename or source URL.
-- Auto-set `part-of` whenever you split an oversized note — the splits point at the parent.
+- Auto-set `derived-from` whenever a note is filed from an inbox capture or external source: point at the capture filename or source URL. List multiple sources if the note synthesizes from several.
+- Auto-set `part-of` whenever you split an oversized note: the splits point at the parent.
 
 **Reverse edges are not stored.** When recall needs "what supersedes this?", it greps for `supersedes:` containing the file. Keeps the gardener from having to maintain both directions.
 

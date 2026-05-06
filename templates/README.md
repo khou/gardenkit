@@ -28,9 +28,9 @@ part-of:       [notes/parent-concept]     # this is a subset of those (often aft
 ---
 ```
 
-The `summary:` field is what recall reads first when scanning many notes. The body is only loaded when the summary signals it's worth the tokens. Keep summaries fresh — stale is worse than missing.
+The `summary:` field is what recall reads first when scanning many notes. The body is only loaded when the summary signals it's worth the tokens. Keep summaries fresh; stale is worse than missing.
 
-The typed edges let recall prune traversal: a `supersedes` chain doesn't need following if the query is about current state, a `contradicts` edge surfaces tensions, etc. The gardener populates them only when the source material is explicit — never speculatively. Most notes will have plain `[[wiki-links]]` in the body and zero typed edges, and that's fine.
+The typed edges let recall skip following links when the relationship type already answers the question: a chain of `supersedes` edges doesn't need following if the query is about current state, a `contradicts` edge surfaces tensions, etc. The gardener populates them only when the source material is explicit, never speculatively. Most notes will have plain `[[wiki-links]]` in the body and zero typed edges, and that's fine.
 
 ## Folders
 

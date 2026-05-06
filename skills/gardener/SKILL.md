@@ -32,7 +32,7 @@ For each file in `~/garden/inbox/`:
    - `supersedes:` if the note explicitly replaces an earlier note
    - `depends-on:` if the note explicitly requires another note's outcome
    - `contradicts:` if the note explicitly disagrees with another note
-   - `derived-from:` always set when filing — point at the inbox capture filename or external source URL
+   - `derived-from:` always set when filing; point at the inbox capture filename or external source URL. List multiple sources if synthesized from several.
    - `part-of:` set on splits (see step 4)
    - Don't speculate. Missing edges are fine; wrong edges mislead recall.
 6. Add `[[wiki-links]]` in the body to existing projects/people/notes the new note references (default for "related, untyped"). Use `grep -ril` to check what already exists.
@@ -59,46 +59,27 @@ Add wiki-links where they're clearly intended.
 
 Spot near-duplicate notes (similar title or significant body overlap). Merge into the older note. Leave the newer file as a one-line redirect for one cycle, then delete on next run.
 
-### 5b. Summary + size + edge hygiene
+### 6. Summary, size, and edge hygiene
 
-Keep recall cheap by maintaining the per-note `summary:` field, the atomic-size invariant, and the typed edges.
+Keep recall cheap by maintaining the per-note `summary:` field, the atomic-size invariant, and the typed edges. Three checks, in order:
 
-```bash
-# Notes missing a summary field
-grep -rL "^summary:" ~/garden --include="*.md" --exclude-dir=.git --exclude-dir=inbox
+- **Missing or stale summaries.** Find notes outside `inbox/`, `meta/`, and `00-index.md` that lack a `summary:` field; backfill one sentence (≤140 chars) per note. For notes whose body has materially changed since `updated:`, refresh the summary if the gist no longer matches.
+- **Oversized notes.** Find notes outside `inbox/` and `daily/` that exceed ~300 lines; split into smaller atomic notes. Splits get `part-of: [<parent>]`. Don't force a split if the content genuinely belongs together, but the default is to split.
+- **Broken or stale typed edges.** For each typed-edge field (`supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`), find values pointing at vault paths that no longer exist (skip URL values in `derived-from`, which are valid). If the target was renamed or merged, point at the new location. If deleted, remove the edge. If the body has materially changed and an edge no longer reflects reality, drop it. A wrong edge misleads recall worse than a missing one.
 
-# Notes over the 300-line atomic target
-find ~/garden -name "*.md" -not -path "*/.git/*" -not -path "*/inbox/*" \
-  -exec sh -c 'lines=$(wc -l < "$1"); [ "$lines" -gt 300 ] && echo "$lines $1"' _ {} \;
+Use `grep`, `find`, and `wc` via the Bash tool however suits the situation. YAML lists may be inline (`[a, b]`) or block-style; handle both.
 
-# Edges pointing at non-existent files (broken links to fix)
-for edge in supersedes depends-on contradicts derived-from part-of; do
-  grep -rh "^$edge:" ~/garden --include="*.md" --exclude-dir=.git \
-    | sed -E "s/^$edge: *\[?//; s/\].*//; s/, */\n/g" \
-    | sort -u | while read path; do
-        [ -n "$path" ] && [ ! -f ~/garden/"$path".md ] && echo "broken $edge → $path"
-      done
-done
-```
-
-For each:
-- **Missing summary**: read the note, write one sentence (≤140 chars) to `summary:`.
-- **Stale summary**: if the body has materially changed since `updated:`, refresh.
-- **Oversized note**: split into smaller atomic notes linked from a thin parent. Splits get `part-of: [<parent>]`. Don't force a split if the content genuinely belongs together — but the default is to split.
-- **Broken edge**: the target was renamed, merged, or deleted. If renamed/merged, point at the new location. If deleted, remove the edge.
-- **Stale edge**: if the body has materially changed and an edge no longer reflects reality, drop it. A wrong edge misleads recall worse than a missing one.
-
-### 6. Update MOCs
+### 7. Update MOCs
 
 For each project/topic MOC, update the "Active threads" or "Recent" section based on notes updated in the last 14 days.
 
 Update `~/garden/00-index.md` "Recent" section with one line per significant change this run.
 
-### 7. Decay
+### 8. Decay
 
 If today is the 1st of the month: consolidate previous month's daily notes into `daily/<YYYY-MM>-summary.md` and delete individual dailies (kept in git history).
 
-### 8. Commit + push
+### 9. Commit + push
 
 ```bash
 cd ~/garden && git add -A && git commit -m "gardener: <date>: <summary of changes>" && git push

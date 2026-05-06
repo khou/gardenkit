@@ -52,10 +52,12 @@ cd ~/github/gardenkit
 The installer is idempotent. It will:
 
 1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`.
-2. Symlink `skills/garden-*` into `~/.claude/skills/`.
-3. Wire `SessionStart`, `SessionEnd`, and `PreCompact` hooks in `~/.claude/settings.json` (recall + auto-capture on session end and before context compaction).
-4. Initialize git in `~/garden/` if not already.
-5. Print next steps.
+2. Initialize git in `~/garden/` if not already.
+3. Symlink `skills/garden-*` and `skills/gardener` into `~/.claude/skills/`.
+4. Wire `SessionStart`, `SessionEnd`, and `PreCompact` hooks in `~/.claude/settings.json` (recall + auto-capture on session end and before context compaction).
+5. Make `scripts/*.sh` executable.
+6. Ask whether to enable `GARDENER_AUTO_APPROVE=1` in `~/.zshrc` so the cron-driven gardener can run unattended (default: off; you can enable later).
+7. Print next steps.
 
 It will **not** overwrite existing files in your vault or remove anything.
 
@@ -86,7 +88,7 @@ It will **not** overwrite existing files in your vault or remove anything.
    ```bash
    claude /login
    ```
-   This stores OAuth tokens that the cron-spawned `claude -p` will read. Without this, the gardener fails with `Not logged in · Please run /login` in `~/garden/.gardener-log`. If you have an `ANTHROPIC_API_KEY` exported in your shell, unset it first — the CLI prefers env-var auth over your subscription, and cron will bill that key instead of using your Claude subscription.
+   This stores OAuth tokens that the cron-spawned `claude -p` will read. Without this, the gardener fails with `Not logged in · Please run /login` in `~/garden/.gardener-log`. If you have an `ANTHROPIC_API_KEY` exported in your shell, unset it first; the CLI prefers env-var auth over your subscription, and cron will bill that key instead of using your Claude subscription.
 6. **Schedule the gardener** via local cron (or optionally a cloud routine), see [docs/SCHEDULING.md](docs/SCHEDULING.md).
 
 ## Layout
