@@ -63,7 +63,7 @@ gardenkit uses three layers of structure:
 
 1. **Type frontmatter** (`type: note | decision | person | project | daily | learning`): a light enum, broad enough that the gardener can apply it from context without ambiguity.
 2. **One-sentence `summary:`**: the short hook recall reads first to decide whether to load the body.
-3. **Typed edges** in frontmatter: `supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`. Populated by the gardener when the relationship is explicit in the source material; left absent otherwise. Plain `[[wiki-links]]` in the body remain the default for "related, untyped."
+3. **Typed edges** in frontmatter: `supersedes`, `depends-on`, `contradicts`, `derived-from`, `part-of`. Populated by the gardener when the relationship is explicit in the source material; left absent otherwise. The first four describe live relationships between vault notes (the hygiene phase validates them); `derived-from` is provenance and may point at deleted inbox captures or external URLs (not validated). Plain `[[wiki-links]]` in the body remain the default for "related, untyped."
 
 Why typed edges in addition to wiki-links? Plain links waste retrieval token budget. To know whether following one is worth the cost, the AI has to read the target. Typed edges let recall prune up front: a chain of `supersedes` edges doesn't need full traversal when the query is about current state; a `contradicts` edge always warrants showing both sides; `depends-on` matters only when the query is about prerequisites. This is the same scoped-retrieval win that adjacent systems (PARA, the "Infinite Brain" remix) pursue with heavier 10-edge schemas. We took the five edge types that have clear semantics the gardener can apply without speculation.
 

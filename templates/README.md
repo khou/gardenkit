@@ -32,6 +32,8 @@ The `summary:` field is what recall reads first when scanning many notes. The bo
 
 The typed edges let recall skip following links when the relationship type already answers the question: a chain of `supersedes` edges doesn't need following if the query is about current state, a `contradicts` edge surfaces tensions, etc. The gardener populates them only when the source material is explicit, never speculatively. Most notes will have plain `[[wiki-links]]` in the body and zero typed edges, and that's fine.
 
+`derived-from` is special: it's provenance (where the note came from), not a live link. Values often point at inbox captures the gardener deleted after filing — the path remains a valid pointer into git history. The hygiene phase doesn't validate `derived-from` targets; the other four edges (`supersedes`, `depends-on`, `contradicts`, `part-of`) are live and get checked.
+
 ## Folders
 
 - `notes/`: atomic notes on any topic
