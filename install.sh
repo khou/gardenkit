@@ -25,17 +25,24 @@ section() { printf "\n== %s ==\n" "$*"; }
 
 section "1. Vault at $VAULT"
 if [ -d "$VAULT" ]; then
-  say "exists, skipping seed"
+  say "exists, will top up any missing meta files"
 else
   mkdir -p "$VAULT"/{notes,projects,people,daily,decisions,inbox,learnings,meta}
   cp -n "$REPO_DIR/templates/00-index.md" "$VAULT/00-index.md"
   cp -n "$REPO_DIR/templates/README.md" "$VAULT/README.md"
-  cp -n "$REPO_DIR/templates/meta/user.md" "$VAULT/meta/user.md"
-  cp -n "$REPO_DIR/templates/meta/soul.md" "$VAULT/meta/soul.md"
-  cp -n "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.md"
   cp -n "$REPO_DIR/templates/projects/EXAMPLE.md" "$VAULT/projects/EXAMPLE.md"
   say "seeded from templates"
 fi
+# Always top up meta files (cp -n is no-clobber, so existing user-edited
+# files are preserved). New gardenkit versions ship new meta files; existing
+# vaults pick them up here. The gardener's schema-migration phase brings
+# their content into line on the next run.
+mkdir -p "$VAULT/meta"
+cp -n "$REPO_DIR/templates/meta/user.md" "$VAULT/meta/user.md"
+cp -n "$REPO_DIR/templates/meta/soul.md" "$VAULT/meta/soul.md"
+cp -n "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.md"
+cp -n "$REPO_DIR/templates/meta/derived-taxonomies.md" "$VAULT/meta/derived-taxonomies.md"
+cp -n "$REPO_DIR/templates/meta/migration-state.md" "$VAULT/meta/migration-state.md"
 
 section "2. Git in vault"
 if [ -d "$VAULT/.git" ]; then
