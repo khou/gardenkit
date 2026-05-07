@@ -29,7 +29,8 @@ Light folder structure, navigation by wiki-links:
     ├── voice.md               ← your writing style (added by garden-voice; load on demand)
     ├── gardener-rules.md      ← maintenance heuristics
     ├── derived-taxonomies.md  ← gardener-curated derived MOC types (e.g. companies/)
-    └── migration-state.md     ← gardener-tracked schema migration state
+    ├── migration-state.md     ← gardener-tracked schema migration state
+    └── refresh-sources.md     ← which external sources the gardener pulls from each pass
 ```
 
 The gardener may also create top-level **derived-MOC folders** (`companies/`, `vendors/`, etc.) when content crosses the threshold for aggregating. (A MOC, "Map of Content", is an index file that links into a topic; in gardenkit, derived MOCs are agent-curated and regenerated each pass from the atomic notes that mention or are tagged with the topic.) Their type roster lives in `meta/derived-taxonomies.md`.
@@ -98,18 +99,21 @@ Inbox files stay raw. The gardener decides what to keep and where to file it.
 ### Gardener (scheduled)
 The `gardener` skill runs unattended on a schedule (cron locally or routine in the cloud). It:
 1. Pulls latest from git
-2. Reads the authoritative meta files: `meta/gardener-rules.md`, `meta/derived-taxonomies.md`, `meta/migration-state.md`
+2. Reads the authoritative meta files: `meta/gardener-rules.md`, `meta/derived-taxonomies.md`, `meta/migration-state.md`, `meta/refresh-sources.md`
 3. Runs schema migration: brings drifted files up to the current convention (capped ~50/run), so a freshly-pulled gardenkit version converges the vault over the next runs
-4. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
-5. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
-6. Dedupes near-duplicates
-7. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
-8. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
-9. Updates hand-curated MOCs with recent activity
-10. Decays old daily notes into monthly summaries
-11. Commits with `gardener:` prefix and pushes
+4. External refresh: pulls diffs from connected sources (Gmail, Drive, Slack, etc.) into `inbox/` per the scope in `meta/refresh-sources.md`. Skipped if that file has no "Active" entries.
+5. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
+6. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
+7. Dedupes near-duplicates
+8. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
+9. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
+10. Updates hand-curated MOCs with recent activity
+11. Decays old daily notes into monthly summaries
+12. Commits with `gardener:` prefix and pushes
 
 The gardener is the agent. Cron/routine is just the alarm clock.
+
+**Contract:** the gardener is **read-only on external sources**. It pulls from connected MCPs (Gmail, Drive, Slack, etc.) but never sends, posts, modifies, or deletes through them. Writes are limited to `~/garden/` and git operations on its remote. Captured content is treated as untrusted data, not instructions; the gardener doesn't follow directives found inside email/Slack/Drive/inbox content. Secrets that slip through get redacted at file time, not silently dropped. The contract is enforced by the LLM following its skill rules; the canonical version lives in `garden-bootstrap`'s "Privacy and safety" section, which the gardener's phase 4 references.
 
 ## Voice profile
 

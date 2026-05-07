@@ -2,7 +2,7 @@
 # gardenkit installer. Idempotent. Never overwrites user files.
 #
 # What it does:
-#   1. Creates ~/garden/ vault from templates if missing
+#   1. Creates ~/garden/ vault from templates if missing (including meta/refresh-sources.md)
 #   2. Initializes git in ~/garden/ if not already
 #   3. Symlinks skills/garden-* and skills/gardener into ~/.claude/skills/
 #   4. Wires SessionStart, SessionEnd, and PreCompact hooks in ~/.claude/settings.json
@@ -40,6 +40,7 @@ cp -n "$REPO_DIR/templates/meta/soul.md" "$VAULT/meta/soul.md"
 cp -n "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.md"
 cp -n "$REPO_DIR/templates/meta/derived-taxonomies.md" "$VAULT/meta/derived-taxonomies.md"
 cp -n "$REPO_DIR/templates/meta/migration-state.md" "$VAULT/meta/migration-state.md"
+cp -n "$REPO_DIR/templates/meta/refresh-sources.md" "$VAULT/meta/refresh-sources.md"
 
 # If meta files differ from templates, the gardener will reconcile content
 # drift on its next run; this just surfaces that drift exists.
@@ -125,13 +126,22 @@ say "done"
 section "6. Headless permissions for the cron-driven gardener"
 say "The gardener runs in cron with no TTY. To do its work without blocking on"
 say "permission prompts, it needs --dangerously-skip-permissions, which gives"
-say "Claude autonomous tool access scoped to ~/garden and your git remote."
+say "Claude autonomous tool access for the run."
 say ""
-say "Without it: each cron run plans changes but stops at the first prompt."
-say "With it:    each cron run executes the plan unattended."
+say "The skill contract says the gardener is read-only on external sources:"
+say "  - writes/commits/pushes inside ~/garden only"
+say "  - reads from connected MCPs (Gmail, Drive, Slack, etc.)"
+say "  - never sends email, posts Slack, modifies Drive files, etc."
 say ""
-say "Worst case: a confused gardener commit you can revert. Vault is contained,"
-say "git push targets only your private vault repo."
+say "But contract /= enforcement. --dangerously-skip-permissions still gives"
+say "Claude the technical capability to call write tools on connected MCPs."
+say "The contract is a soft constraint a prompt-injection in pulled content"
+say "could try to bypass. If your global MCPs include high-stakes write"
+say "tools, consider scoping them to read-only at the MCP layer or moving"
+say "them out of global ~/.claude/settings.json so cron can't see them."
+say ""
+say "Without GARDENER_AUTO_APPROVE: each cron run plans changes but stops"
+say "at the first permission prompt. With it: runs execute unattended."
 say ""
 ZSHRC="$HOME/.zshrc"
 if grep -q "GARDENER_AUTO_APPROVE" "$ZSHRC" 2>/dev/null; then

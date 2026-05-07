@@ -37,7 +37,9 @@ This system gives you all three. The vault is plain markdown so Obsidian renders
 
 - **Capture** writes to `inbox/`: fire-and-forget.
 - **Recall** runs at session start; injects relevant notes into Claude's context automatically.
-- **Gardener** runs on a schedule; processes `inbox/`, links notes, dedupes, summarizes, commits, pushes.
+- **Gardener** runs on a schedule. Each pass pulls diffs from connected sources (Gmail, Drive, Slack, etc.) into `inbox/`, then processes inbox, links notes, dedupes, summarizes, and commits + pushes.
+
+The gardener is **read-only on external sources** by contract: it pulls from MCPs but never sends email, posts Slack, or modifies Drive files. All writes land in `~/garden/` (your private vault).
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the long version.
 
@@ -65,7 +67,7 @@ It will **not** overwrite existing files in your vault or remove anything.
 
 1. **Fill `~/garden/meta/user.md`** by asking Claude to interview you (15 questions).
 2. **Bootstrap your voice profile.** Ask Claude to "init my voice from Slack" (invokes the `garden-voice` skill). Pulls your sent messages, synthesizes patterns into `meta/voice.md`. Loaded on-demand whenever Claude drafts in your voice.
-3. **Bootstrap your knowledge graph from connected data sources.** Ask Claude to "init my garden from connected sources" (invokes the `garden-bootstrap` skill). Surveys which MCPs are connected (Gmail, Google Drive, Slack are most common), then pulls people, projects, decisions, transcripts, investor / customer state, and writes them as atomic notes and people files. After the pull, the skill suggests additional data sources you might want to connect for richer context, for example:
+3. **Bootstrap your knowledge graph from connected data sources.** Ask Claude to "init my garden from connected sources" (invokes the `garden-bootstrap` skill). Surveys which MCPs are connected (Gmail, Google Drive, Slack are most common), then pulls people, projects, decisions, transcripts, investor / customer state, and writes them as atomic notes and people files. The skill also asks which sources the gardener should keep refreshing on every scheduled run, and writes that decision to `meta/refresh-sources.md`. After the pull, the skill suggests additional data sources you might want to connect for richer context, for example:
    - Meeting transcript services (Granola, Fireflies, Otter, Zoom AI, Read.ai)
    - CRM / sales pipeline (HubSpot, Salesforce, Close, Attio)
    - Issue tracker / project management (Linear, Jira, Asana, Notion, ClickUp)
@@ -89,7 +91,7 @@ It will **not** overwrite existing files in your vault or remove anything.
    claude /login
    ```
    This stores OAuth tokens that the cron-spawned `claude -p` will read. Without this, the gardener fails with `Not logged in · Please run /login` in `~/garden/.gardener-log`. If you have an `ANTHROPIC_API_KEY` exported in your shell, unset it first; the CLI prefers env-var auth over your subscription, and cron will bill that key instead of using your Claude subscription.
-6. **Schedule the gardener** via local cron (or optionally a cloud routine), see [docs/SCHEDULING.md](docs/SCHEDULING.md).
+6. **Schedule the gardener** via local cron (or optionally a cloud routine), see [docs/SCHEDULING.md](docs/SCHEDULING.md). If you skipped step 3, populate `meta/refresh-sources.md` first (the template has examples) so the gardener's external-refresh phase has something to pull.
 
 ## Layout
 
@@ -110,7 +112,7 @@ gardenkit/
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md
 │   ├── README.md
-│   ├── meta/{user,soul,gardener-rules,derived-taxonomies,migration-state}.md
+│   ├── meta/{user,soul,gardener-rules,derived-taxonomies,migration-state,refresh-sources}.md
 │   └── projects/EXAMPLE.md
 └── docs/
     ├── ARCHITECTURE.md          ← the design and reasoning

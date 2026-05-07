@@ -32,7 +32,7 @@ The `summary:` field is what recall reads first when scanning many notes. The bo
 
 The typed edges let recall skip following links when the relationship type already answers the question: a chain of `supersedes` edges doesn't need following if the query is about current state, a `contradicts` edge surfaces tensions, etc. The gardener populates them only when the source material is explicit, never speculatively. Most notes will have plain `[[wiki-links]]` in the body and zero typed edges, and that's fine.
 
-`derived-from` is special: it's provenance (where the note came from), not a live link. Values often point at inbox captures the gardener deleted after filing — the path remains a valid pointer into git history. The hygiene phase doesn't validate `derived-from` targets; the other four edges (`supersedes`, `depends-on`, `contradicts`, `part-of`) are live and get checked.
+`derived-from` is special: it's provenance (where the note came from), not a live link. Values often point at inbox captures the gardener deleted after filing; the path remains a valid pointer into git history. The hygiene phase doesn't validate `derived-from` targets; the other four edges (`supersedes`, `depends-on`, `contradicts`, `part-of`) are live and get checked.
 
 ## Folders
 
@@ -43,7 +43,7 @@ The typed edges let recall skip following links when the relationship type alrea
 - `daily/`: one file per day, append-as-you-go
 - `learnings/`: TIL-style facts worth keeping
 - `inbox/`: raw captures awaiting gardener processing
-- `meta/`: vault config, identity files, gardener rules, gardener state (derived-taxonomies and migration-state)
+- `meta/`: vault config, identity files, gardener rules, gardener state (derived-taxonomies and migration-state), and the continuous-refresh source list (refresh-sources)
 
 The gardener may also create **derived-MOC folders** (`companies/`, `vendors/`, etc.) when content crosses the threshold for aggregating. These are agent-curated and regenerated each run; the active type roster lives in [[meta/derived-taxonomies]]. Don't hand-edit anything inside derived-MOC folders: edit the underlying atomic notes and the MOC regenerates.
 
