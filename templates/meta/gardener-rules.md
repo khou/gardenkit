@@ -108,7 +108,8 @@ Format: list of vault-relative paths without `.md` extension and without `[[ ]]`
 
 **When to populate:**
 
-- Only when the relationship is **explicit in the source material**. If the capture says "this overrides our earlier decision on X", populate `supersedes`. If it says "we need Y resolved first", populate `depends-on`.
+- During inbox processing, only when the relationship is **explicit in the source material**. If the capture says "this overrides our earlier decision on X", populate `supersedes`. If it says "we need Y resolved first", populate `depends-on`.
+- The consistency-check phase is an exception: it may set `supersedes:` and `contradicts:` based on cross-note inference, with the confidence thresholds in that section.
 - Never speculate. A missing edge is fine; a wrong edge is worse than none.
 - Auto-set `derived-from` whenever a note is filed from an inbox capture or external source: point at the capture filename or source URL. List multiple sources if the note synthesizes from several. Don't worry that the inbox file gets deleted right after; the path is provenance into git history, not a live link.
 - Auto-set `part-of` whenever you split an oversized note: the splits point at the parent.
@@ -116,6 +117,26 @@ Format: list of vault-relative paths without `.md` extension and without `[[ ]]`
 **Reverse edges are not stored.** When recall needs "what supersedes this?", it greps for `supersedes:` containing the file. Keeps the gardener from having to maintain both directions.
 
 **Refresh on update.** When editing a note's body, check whether live edges still hold. Stale live edges mislead recall. Provenance doesn't change.
+
+## Consistency check
+
+The brain drifts. New notes silently invalidate older ones; a person's role moves on but their file still says the old thing; two decisions cover the same area without referencing each other. The dedupe and edge-hygiene phases catch structural problems (duplicates, broken targets) but not semantic ones (contradictions, stale facts). The consistency-check phase covers that gap.
+
+This is the one phase where the gardener may set typed edges based on **cross-note inference** rather than the "explicit in source material" rule that governs inbox processing. The bar is higher: be sure before setting `supersedes:` or rewriting a hub's status; be moderately sure before setting `contradicts:` (recall surfaces both sides anyway); flag rather than guess.
+
+**Scope each pass (bounded so token cost stays predictable):**
+
+- **This-run scope, always.** Every note created or modified by the gardener in earlier phases. For each, find related notes via wiki-links in the body, shared tags, shared `[[projects/...]]` or `[[people/...]]` references, and existing typed-edge targets. Compare summaries first; only read bodies when summaries diverge or one of them lacks the substance to judge.
+- **Rolling sweep, capped ~10 notes/pass.** Sample from project MOCs, people files, and decisions whose `updated:` is oldest. These are the notes most likely to drift unnoticed because nothing recently has touched them. Skip the rolling sweep if the this-run scope is already large (>~20 notes); let the next pass pick it up.
+
+**Outcomes when a conflict surfaces:**
+
+- **Clear replacement** — newer note factually invalidates older. Set `supersedes:` on the newer pointing at the older. High confidence required.
+- **Genuine disagreement** — both still hold and readers should see both sides. Set `contradicts:` on the newer pointing at the older. Moderate confidence is enough.
+- **Hub status drift** — a person's role / a project's state has clearly moved, corroborated by 2+ recent notes. Update the hub file's frontmatter and body in place; commit message cites the corroborating notes.
+- **Ambiguous** — leave a `> NOTE: consistency: <issue>` blockquote at the top of the newer note. Don't guess. The flag persists for one cycle so a human can resolve it; the next pass treats it as a real edge if confirmed.
+
+**Logging.** Append one line per pass to `meta/migration-state.md`'s Log section, prefixed `consistency:` so it's distinguishable from migration entries.
 
 ## Dedupe
 
