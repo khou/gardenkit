@@ -90,21 +90,39 @@ Keep recall cheap by maintaining the per-note `summary:` field, the atomic-size 
 
 Use `grep`, `find`, and `wc` via the Bash tool however suits the situation. YAML lists may be inline (`[a, b]`) or block-style; handle both.
 
-### 9. Curate derived taxonomies
+### 9. Consistency check
+
+Run the rules in `gardener-rules.md` section "Consistency check": sweep for cross-note contradictions, stale statuses, and silent supersessions that earlier phases don't catch (phase 5 only sets edges when explicit in source; phase 8 only validates structural targets). Bounded each pass:
+
+- **This-run scope (always).** Every note created or modified in phases 3–8. For each, find related notes via wiki-links, shared tags, and shared project/person references. Compare claims.
+- **Rolling sweep (capped ~10 notes/pass).** Sample from project hubs, person files, and decisions whose `updated:` is oldest. Skip the rolling sweep if the this-run scope already exceeds ~20 notes — let the next pass pick it up.
+
+When a conflict surfaces:
+
+- **Clear replacement** (newer factually invalidates older): set `supersedes:` on the newer pointing at the older.
+- **Genuine disagreement** (both still hold; readers should see both): set `contradicts:` on the newer pointing at the older.
+- **Status drift on a hub** (e.g., a person's role or a project's state has moved on, corroborated by 2+ recent notes): update the hub's frontmatter and body, citing the corroborating notes in the commit message.
+- **Low confidence**: leave a `> NOTE: consistency: <issue>` blockquote at the top of the newer note for human review next pass. Don't guess.
+
+This is the one phase where the gardener may set typed edges based on cross-note inference rather than explicit source material (phase 5's rule). High confidence required for `supersedes:` and status updates; moderate confidence is enough for `contradicts:` since recall surfaces both sides anyway.
+
+Append a one-line entry to `meta/migration-state.md` Log section: e.g., `2026-05-07 consistency: 12 checked, 2 supersedes, 1 contradicts, 3 NOTE flags`.
+
+### 10. Curate derived taxonomies
 
 Run the rules in `gardener-rules.md` section "Derived taxonomies": regenerate every active derived MOC from its `derived-from:` sources using the type's render template; scan for new candidates that cross threshold; reconsider merges/splits/retirements. Document every change in `meta/derived-taxonomies.md`. The agent has full discretion to introduce, merge, split, or retire types based on what the vault currently holds.
 
-### 10. Update hand-curated MOCs
+### 11. Update hand-curated MOCs
 
 For each project/topic MOC, update the "Active threads" or "Recent" section based on notes updated in the last 14 days.
 
 Update `~/garden/00-index.md` "Recent" section with one line per significant change this run.
 
-### 11. Decay
+### 12. Decay
 
 If today is the 1st of the month: consolidate previous month's daily notes into `daily/<YYYY-MM>-summary.md` and delete individual dailies (kept in git history).
 
-### 12. Commit + push
+### 13. Commit + push
 
 ```bash
 cd ~/garden && git add -A && git commit -m "gardener: <date>: <summary of changes>" && git push

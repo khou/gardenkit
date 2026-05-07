@@ -106,10 +106,11 @@ The `gardener` skill runs unattended on a schedule (cron locally or routine in t
 6. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
 7. Dedupes near-duplicates
 8. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
-9. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
-10. Updates hand-curated MOCs with recent activity
-11. Decays old daily notes into monthly summaries
-12. Commits with `gardener:` prefix and pushes
+9. Runs a consistency check across the brain: sweeps this-run-touched notes plus a rolling sample of hubs for cross-note contradictions and stale statuses, sets `supersedes:` / `contradicts:` edges or flags ambiguous cases for human review
+10. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
+11. Updates hand-curated MOCs with recent activity
+12. Decays old daily notes into monthly summaries
+13. Commits with `gardener:` prefix and pushes
 
 The gardener is the agent. Cron/routine is just the alarm clock.
 
