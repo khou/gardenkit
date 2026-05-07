@@ -104,7 +104,7 @@ Format: list of vault-relative paths without `.md` extension and without `[[ ]]`
 **Two flavors:**
 
 - **Live edges** (`supersedes`, `depends-on`, `contradicts`, `part-of`): describe relationships between live notes. Targets must exist in the vault. The hygiene phase validates them and flags broken or stale ones.
-- **Provenance** (`derived-from`): on atomic notes, records where the note came from. Often points at an inbox capture (which the gardener deletes after filing; the file lives on in git history), an external URL, or a transcript filename. **Not validated by hygiene** — broken-looking targets are usually correct provenance into git history. **Exception**: on a derived MOC (see "Derived taxonomies" above), `derived-from` enumerates the live source notes used in regeneration; targets must exist for the regenerate phase to work, so hygiene treats them as live edges when `type` is a derived-MOC type.
+- **Provenance** (`derived-from`): on atomic notes, records where the note came from. Often points at an inbox capture (which the gardener deletes after filing; the file lives on in git history), an external URL, or a transcript filename. **Not validated by hygiene**: broken-looking targets are usually correct provenance into git history. **Exception**: on a derived MOC (see "Derived taxonomies" above), `derived-from` enumerates the live source notes used in regeneration; targets must exist for the regenerate phase to work, so hygiene treats them as live edges when `type` is a derived-MOC type.
 
 **When to populate:**
 
