@@ -6,6 +6,8 @@ The gardener is one LLM agent that runs through all phases each pass: pull exter
 
 A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headlessly. Uses your existing Claude Code subscription: no separate billing.
 
+Codex users can use `scripts/gardener-run-codex.sh` instead. See [CODEX.md](CODEX.md) for the Codex-specific setup.
+
 ### Prerequisites
 
 1. **Log in to Claude headlessly** so the cron-spawned `claude -p` finds OAuth tokens:
@@ -13,6 +15,11 @@ A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headless
    claude /login
    ```
    Skip this and the gardener will silently fail with `Not logged in · Please run /login` in the log.
+
+   For Codex-based scheduling, log in with:
+   ```bash
+   codex login
+   ```
 
 2. **Unset any `ANTHROPIC_API_KEY` in your shell config.** The CLI prefers env-var auth over your subscription. If a key is set and unfunded, cron runs hit `Credit balance is too low` instead of using your subscription. Check with `echo "${ANTHROPIC_API_KEY:+set}"` and remove from `~/.zshrc` if present.
 
@@ -44,6 +51,12 @@ Add (every 4 hours, off-minute to avoid stampedes):
 
 ```
 7 */4 * * * /Users/<you>/github/gardenkit/scripts/gardener-run.sh
+```
+
+For Codex:
+
+```
+7 */4 * * * /Users/<you>/github/gardenkit/scripts/gardener-run-codex.sh
 ```
 
 Verify it's installed:
