@@ -5,19 +5,22 @@
 #   1. Creates ~/garden/ vault from templates if missing (including meta/refresh-sources.md)
 #   2. Initializes git in ~/garden/ if not already
 #   3. Symlinks skills/garden-* and skills/gardener into ~/.claude/skills/
+#      and ~/.codex/skills/
 #   4. Wires SessionStart, SessionEnd, and PreCompact hooks in ~/.claude/settings.json
 #   5. Makes scripts/*.sh executable
 #   6. Optionally enables GARDENER_AUTO_APPROVE in ~/.zshrc for headless cron runs
 #
-# Re-run safe. To uninstall, remove the symlinks in ~/.claude/skills/ and the
-# hook entries in ~/.claude/settings.json manually.
+# Re-run safe. To uninstall, remove the symlinks in ~/.claude/skills/ and
+# ~/.codex/skills/, plus the hook entries in ~/.claude/settings.json manually.
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VAULT="${GARDEN_VAULT:-$HOME/garden}"
 CLAUDE_DIR="$HOME/.claude"
-SKILLS_DIR="$CLAUDE_DIR/skills"
+CLAUDE_SKILLS_DIR="$CLAUDE_DIR/skills"
+CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
+CODEX_SKILLS_DIR="$CODEX_DIR/skills"
 SETTINGS="$CLAUDE_DIR/settings.json"
 
 say() { printf "  %s\n" "$*"; }
@@ -56,23 +59,34 @@ else
   say "git initialized + initial commit"
 fi
 
-section "3. Skills (symlinks into ~/.claude/skills/)"
-mkdir -p "$SKILLS_DIR"
-for src in "$REPO_DIR"/skills/garden-* "$REPO_DIR"/skills/gardener; do
-  [ -d "$src" ] || continue
-  skill=$(basename "$src")
-  dst="$SKILLS_DIR/$skill"
-  if [ -L "$dst" ]; then
-    say "$skill: symlink exists"
-  elif [ -e "$dst" ]; then
-    say "$skill: WARN, non-symlink exists at $dst, leaving alone (move it aside to install)"
-  else
-    ln -s "$src" "$dst"
-    say "$skill: linked"
-  fi
-done
+link_skills() {
+  label="$1"
+  skills_dir="$2"
+
+  say "$label -> $skills_dir"
+  mkdir -p "$skills_dir"
+  for src in "$REPO_DIR"/skills/garden-* "$REPO_DIR"/skills/gardener; do
+    [ -d "$src" ] || continue
+    skill=$(basename "$src")
+    dst="$skills_dir/$skill"
+    if [ -L "$dst" ]; then
+      say "  $skill: symlink exists"
+    elif [ -e "$dst" ]; then
+      say "  $skill: WARN, non-symlink exists at $dst, leaving alone (move it aside to install)"
+    else
+      ln -s "$src" "$dst"
+      say "  $skill: linked"
+    fi
+  done
+}
+
+section "3. Skills (symlinks into Claude + Codex skill dirs)"
+link_skills "Claude" "$CLAUDE_SKILLS_DIR"
+link_skills "Codex" "$CODEX_SKILLS_DIR"
 
 section "4. Hooks in $SETTINGS"
+say "Claude Code supports SessionStart/SessionEnd/PreCompact hooks; wiring those now."
+say "Codex loads the installed skills from $CODEX_SKILLS_DIR. Use scripts/gardener-run-codex.sh or Codex app automations for scheduled runs."
 HOOK_START="$REPO_DIR/scripts/session-start.sh"
 HOOK_END="$REPO_DIR/scripts/extract-to-inbox.sh session"
 HOOK_COMPACT="$REPO_DIR/scripts/extract-to-inbox.sh pre-compact"
@@ -124,7 +138,7 @@ chmod +x "$REPO_DIR/scripts/"*.sh
 say "done"
 
 section "6. Headless permissions for the cron-driven gardener"
-say "The gardener runs in cron with no TTY. To do its work without blocking on"
+say "The Claude gardener runs in cron with no TTY. To do its work without blocking on"
 say "permission prompts, it needs --dangerously-skip-permissions, which gives"
 say "Claude autonomous tool access for the run."
 say ""
@@ -164,14 +178,15 @@ else
 fi
 
 section "Next steps"
-say "1. Fill ~/garden/meta/user.md. Ask Claude: 'Interview me for my user.md (15 questions).'"
-say "2. Bootstrap your voice profile. Ask Claude: 'init my voice from Slack' (invokes garden-voice)."
-say "3. Bootstrap your knowledge graph. Ask Claude: 'init my garden from connected sources' (invokes garden-bootstrap)."
+say "1. Fill ~/garden/meta/user.md. Ask Claude or Codex: 'Interview me for my user.md (15 questions).'"
+say "2. Bootstrap your voice profile. Ask Claude or Codex: 'init my voice from Slack' (invokes garden-voice)."
+say "3. Bootstrap your knowledge graph. Ask Claude or Codex: 'init my garden from connected sources' (invokes garden-bootstrap)."
 say "4. Push the vault to a private GitHub repo:"
 say "     cd ~/garden && git remote add origin git@github.com:<you>/garden.git && git push -u origin main"
-say "5. Log in to Claude headlessly so cron-spawned 'claude -p' has tokens:"
+say "5. Log in to whichever CLI you want to run headlessly:"
 say "     claude /login"
+say "     codex login"
 say "   (If you have ANTHROPIC_API_KEY exported, unset it first; env-var auth overrides your subscription.)"
 say "6. Schedule the gardener. See $REPO_DIR/docs/SCHEDULING.md"
 say ""
-say "Restart Claude Code to activate the SessionStart hook."
+say "Restart Claude Code to activate the SessionStart hook, or restart Codex so it sees the newly linked skills."

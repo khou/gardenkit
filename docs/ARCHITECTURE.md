@@ -7,7 +7,7 @@ The thinking behind gardenkit.
 - **Single vault, all topics.** No per-topic directory structure to switch between.
 - **LLM-maintained.** You capture; the agent organizes.
 - **Obsidian-visualizable.** Plain markdown + wiki-links → graph view, backlinks, tags all work.
-- **Portable across environments.** Works in Claude Code (local), Cowork (cloud), Obsidian (desktop/mobile), with the vault in git.
+- **Portable across environments.** Works in Claude Code, Codex, Cowork/cloud routines, and Obsidian, with the vault in git.
 
 ## The vault
 
@@ -80,7 +80,7 @@ The alternatives are honest design choices, not wrong ones. They optimize for a 
 ## The three loops
 
 ### Recall (session start)
-A `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/user.md` + `meta/soul.md` to stdout. Claude Code injects this as additional context for the new session. The agent then follows wiki-links on demand for deeper context.
+A Claude Code `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/user.md` + `meta/soul.md` to stdout. Claude Code injects this as additional context for the new session. Codex uses the same recall logic through the installed `garden-recall` skill; ask it to use garden recall when you want vault context at the start of a conversation. The agent then follows wiki-links on demand for deeper context.
 
 ### Capture (during/after session)
 The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
@@ -88,7 +88,7 @@ The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be
 - The `SessionEnd` hook: when a session ends, extracts noteworthy items from the transcript into inbox files
 - The `PreCompact` hook: when context is about to be compacted (auto or manual `/compact`), captures items from the soon-to-be-truncated portion before they're lost. Honors `custom_instructions` from manual compactions as a hint to the extractor.
 
-Both auto-capture hooks share `scripts/extract-to-inbox.sh`, parameterized by source label. The script reads the transcript, pipes user+assistant text through `claude -p` with a focused extraction prompt, writes one inbox file per noteworthy item, and runs the heavy work in the background so the hook returns immediately.
+Both Claude auto-capture hooks share `scripts/extract-to-inbox.sh`, parameterized by source label. The script reads the transcript, pipes user+assistant text through `claude -p` with a focused extraction prompt, writes one inbox file per noteworthy item, and runs the heavy work in the background so the hook returns immediately. Codex capture is skill-driven today: ask it to use `garden-capture`, or run the scheduled gardener over manually added inbox files.
 
 Tunable via env vars:
 - `GARDEN_CAPTURE_MIN_WORDS` (default 200): skip extraction if transcript is shorter
@@ -134,12 +134,12 @@ Skills still exist as the **library functions** that hooks (and routines) call. 
 
 ## Local vs cloud execution
 
-| Concern | Local (Claude Code) | Cloud (Cowork / routine) |
-|---|---|---|
-| Session-start recall | `SessionStart` hook (this repo) | N/A: Cowork loads context differently |
-| End-of-session capture | `SessionEnd` + `PreCompact` hooks (this repo) | N/A |
-| Gardener | Local cron + headless `claude -p` | Routine via `mcp__scheduled-tasks` or `schedule` skill |
-| Vault access | Direct local FS | GitHub plugin reads/writes the same git repo |
+| Concern | Claude Code | Codex | Cloud (Cowork / routine) |
+|---|---|---|---|
+| Session-start recall | `SessionStart` hook (this repo) | `garden-recall` skill on demand | N/A: Cowork loads context differently |
+| End-of-session capture | `SessionEnd` + `PreCompact` hooks (this repo) | `garden-capture` skill on demand | N/A |
+| Gardener | Local cron + headless `claude -p` | Local cron + `codex exec` | Routine via `mcp__scheduled-tasks` or `schedule` skill |
+| Vault access | Direct local FS | Direct local FS | GitHub plugin reads/writes the same git repo |
 
 Vault-in-git is the bridge: both environments operate on the same source of truth, just via different access paths.
 
@@ -149,13 +149,13 @@ The vault is plain markdown, so any editor works. Obsidian's value is the **grap
 
 ## Memory vs vault
 
-The gardenkit vault complements (not replaces) Claude Code's auto memory at `~/.claude/projects/<project>/memory/`:
+The gardenkit vault complements (not replaces) agent-local memory such as Claude Code's auto memory at `~/.claude/projects/<project>/memory/`:
 
 | Auto memory | Vault |
 |---|---|
 | Quick *facts* about user/feedback/projects/references | Full notes, decisions, learnings, project state |
 | Indexed by `MEMORY.md` (≤200 lines) | Indexed by `00-index.md` + wiki-links |
-| Always loaded into Claude Code context | Loaded via SessionStart hook |
+| Always loaded into the agent's local context | Loaded via hook or `garden-recall` |
 | One-line entries | Multi-paragraph atomic notes |
 
 Use both. Memory for "what's true about you"; vault for "what you know and are working on."

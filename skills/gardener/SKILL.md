@@ -142,3 +142,8 @@ Headless via cron / routine:
 ```bash
 claude -p "Run the gardener skill. Today is $(date +%Y-%m-%d)."
 ```
+
+For Codex:
+```bash
+codex exec -C ~/garden --full-auto "Run the gardener skill. Today is $(date +%Y-%m-%d)."
+```
