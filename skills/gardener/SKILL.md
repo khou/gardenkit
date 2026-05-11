@@ -7,6 +7,18 @@ description: Process the garden vault. Pulls diffs from connected sources (per ~
 
 The maintenance agent for `~/garden/`. Reads inbox, files notes, links, dedupes, summarizes. Designed to run unattended on a schedule.
 
+## What the gardener is
+
+The vault's **out-of-band maintenance loop**: the personal-vault equivalent of what Anthropic ships as "dreaming" for agent memory. Three explicit jobs every pass:
+
+- **Verify** existing notes against newer captures and the rest of the vault; stamp the still-accurate ones and flag the contradicted ones.
+- **Organize**: dedupe, link, regenerate derived MOCs, sweep stale entries.
+- **Enrich**: promote recurring cross-note patterns into synthesis notes when threshold is met.
+
+The gardener may spend a non-trivial token budget on this. Cost is paid once per pass and amortized across every recall.
+
+See `~/garden/meta/gardener-rules.md` sections "Verification stamping", "Thematic synthesis", and "Stale-entry sweep" for the operational specs of the three jobs.
+
 ## Phases
 
 Run in order. Stop after any phase if no work to do.
@@ -90,12 +102,12 @@ Keep recall cheap by maintaining the per-note `summary:` field, the atomic-size 
 
 Use `grep`, `find`, and `wc` via the Bash tool however suits the situation. YAML lists may be inline (`[a, b]`) or block-style; handle both.
 
-### 9. Consistency check
+### 9. Consistency check (Verify, half 1: find contradictions)
 
 Run the rules in `gardener-rules.md` section "Consistency check": sweep for cross-note contradictions, stale statuses, and silent supersessions that earlier phases don't catch (phase 5 only sets edges when explicit in source; phase 8 only validates structural targets). Bounded each pass:
 
 - **This-run scope (always).** Every note created or modified in phases 3–8. For each, find related notes via wiki-links, shared tags, and shared project/person references. Compare claims.
-- **Rolling sweep (capped ~10 notes/pass).** Sample from project hubs, person files, and decisions whose `updated:` is oldest. Skip the rolling sweep if the this-run scope already exceeds ~20 notes — let the next pass pick it up.
+- **Rolling sweep (capped ~10 notes/pass).** Sample from project hubs, person files, and decisions whose `updated:` is oldest. Skip the rolling sweep if the this-run scope already exceeds ~20 notes; let the next pass pick it up.
 
 When a conflict surfaces:
 
@@ -108,9 +120,40 @@ This is the one phase where the gardener may set typed edges based on cross-note
 
 Append a one-line entry to `meta/migration-state.md` Log section: e.g., `2026-05-07 consistency: 12 checked, 2 supersedes, 1 contradicts, 3 NOTE flags`.
 
-### 10. Curate derived taxonomies
+### 9b. Verification stamping (Verify, half 2: stamp the accurate)
+
+Same sample as phase 9 (this-run scope plus the rolling cap, ~10 notes max). For each note where the consistency pass found **no contradictions and positive corroboration** in the rest of the vault, leave a positive freshness signal:
+
+- Set or refresh `verified: YYYY-MM-DD` in the note's frontmatter with today's date.
+- For high-recall hubs (project MOCs, frequently-linked person files), optionally append a `> VERIFIED <date>: corroborated by [[a]], [[b]]; no contradicting evidence in last 14 days.` blockquote at the top of the body.
+- Skip ambiguous notes. Absence of contradiction is not the same as positive corroboration; when in doubt, leave it.
+- Prioritize the sample so notes with oldest `verified:` and notes that are heavily linked-from come first.
+
+Append a one-line entry to `meta/migration-state.md` Log section: e.g., `2026-05-10 verified: 7 stamped, 3 skipped (ambiguous)`.
+
+This phase is what makes recall trust a note without re-deriving its claims. See `gardener-rules.md` section "Verification stamping" for the full spec.
+
+### 10. Curate derived taxonomies (Organize)
 
 Run the rules in `gardener-rules.md` section "Derived taxonomies": regenerate every active derived MOC from its `derived-from:` sources using the type's render template; scan for new candidates that cross threshold; reconsider merges/splits/retirements. Document every change in `meta/derived-taxonomies.md`. The agent has full discretion to introduce, merge, split, or retire types based on what the vault currently holds.
+
+### 10b. Thematic synthesis (Enrich)
+
+Run the rules in `gardener-rules.md` section "Thematic synthesis": scan recent atomic notes (last 30 days) for **recurring patterns that are not entity-shaped** but cross threshold (3+ notes touching the theme, not already covered by an existing hub / MOC / synthesis).
+
+When threshold fires, propose a synthesis note in `notes/<theme-slug>.md` opened with:
+
+```
+> NOTE: gardener proposed synthesis: <theme>; sources [[a]], [[b]], [[c]]. Ratify by editing this blockquote.
+```
+
+The user ratifies on a subsequent pass by removing the NOTE block.
+
+**Cap: at most 2 new synthesis proposals per pass.** If more than 2 themes hit threshold, pick the highest-value 2 and queue the rest by leaving a one-line note in `meta/migration-state.md` Log (e.g., `2026-05-10 synthesis: 2 proposed; queued: recurring-customer-objection-X, vocabulary-shift-Y`).
+
+Quality over quantity. Don't fire on superficial co-mentions. A theme must show up as the *subject* of 3+ atomic notes, not as a tag.
+
+Run after phase 10 so the regenerated entity MOCs are available as inputs.
 
 ### 11. Update hand-curated MOCs
 
@@ -118,9 +161,20 @@ For each project/topic MOC, update the "Active threads" or "Recent" section base
 
 Update `~/garden/00-index.md` "Recent" section with one line per significant change this run.
 
-### 12. Decay
+### 12. Decay + stale-entry sweep (Organize)
 
-If today is the 1st of the month: consolidate previous month's daily notes into `daily/<YYYY-MM>-summary.md` and delete individual dailies (kept in git history).
+Two parts:
+
+**Monthly consolidation.** If today is the 1st of the month: consolidate previous month's daily notes into `daily/<YYYY-MM>-summary.md` and delete individual dailies (kept in git history).
+
+**Stale-entry sweep, every pass.** Run the rules in `gardener-rules.md` section "Stale-entry sweep":
+
+- `status: superseded` decisions older than 60 days with no recent references → flag with `> NOTE: gardener flagged for archival: superseded N days ago, no references in last M days.`
+- Resolved or dropped questions older than 14 days → archive to `questions/_archive/<YYYY>/`.
+- `status: active` decisions not referenced anywhere in the last 90 days → flag with `> NOTE: gardener: decision quiet for 90+ days, still active? <date>`.
+- Notes with `verified:` older than 90 days → flag for re-verification on next pass by adding them to the priority list for phase 9b.
+
+Symmetric with phase 9b: stamps amplify what recall should trust; the stale sweep quiets what recall should mistrust. Together they implement the Verify half of the loop.
 
 ### 13. Commit + push
 

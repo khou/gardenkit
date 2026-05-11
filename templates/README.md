@@ -19,6 +19,7 @@ tags: [topic1, topic2]
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 summary: One sentence, ≤140 chars. What you'd learn from reading this. No wiki-links.
+verified: YYYY-MM-DD   # optional: gardener stamps this when the note's claims still hold
 # Optional typed edges (gardener populates when relationships are explicit):
 supersedes:    [decisions/old-decision]   # this replaces those
 depends-on:    [projects/blocking-thing]  # this requires those
@@ -29,6 +30,8 @@ part-of:       [notes/parent-concept]     # this is a subset of those (often aft
 ```
 
 The `summary:` field is what recall reads first when scanning many notes. The body is only loaded when the summary signals it's worth the tokens. Keep summaries fresh; stale is worse than missing.
+
+The `verified:` field is a positive freshness signal: when present, it means the gardener cross-checked the note's claims against the rest of the vault on that date and found them still accurate. Recall can trust a recently-verified note more strongly than an unverified one of the same age. The gardener writes this in the verification-stamping phase (see [[meta/gardener-rules]] section "Verification stamping").
 
 The typed edges let recall skip following links when the relationship type already answers the question: a chain of `supersedes` edges doesn't need following if the query is about current state, a `contradicts` edge surfaces tensions, etc. The gardener populates them only when the source material is explicit, never speculatively. Most notes will have plain `[[wiki-links]]` in the body and zero typed edges, and that's fine.
 
