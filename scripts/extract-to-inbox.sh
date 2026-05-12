@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Generic transcript-to-inbox extractor. Used by both SessionEnd and PreCompact hooks.
 #
-# Usage in settings.json hook:
+# Usage in hook config:
 #   "command": "/path/to/extract-to-inbox.sh <source-label>"
 # where <source-label> is e.g. "session" or "pre-compact".
 #
-# Reads JSON input from stdin (Claude Code hook contract):
-#   { "session_id", "transcript_path", "cwd", "reason"?, "trigger"?, "custom_instructions"? }
+# Reads JSON input from stdin. Supports both:
+#   - Claude Code: { "session_id", "transcript_path", "cwd", "reason"?, "trigger"?, "custom_instructions"? }
+#   - Cursor:      { "conversation_id", "transcript_path", "hook_event_name", "workspace_roots", ... }
+#
+# transcript_path is the only field strictly required; other fields gracefully
+# default to empty when absent.
 #
 # Extracts user+assistant text from the transcript, pipes through `claude -p`
 # with a focused extraction prompt, writes capture files into ~/garden/inbox/.
@@ -58,6 +62,10 @@ except Exception:
 
 TRANSCRIPT_PATH=$(read_field transcript_path)
 SESSION_ID=$(read_field session_id)
+# Cursor uses conversation_id instead of session_id; fall back if needed.
+if [ -z "$SESSION_ID" ]; then
+  SESSION_ID=$(read_field conversation_id)
+fi
 REASON=$(read_field reason)              # SessionEnd
 TRIGGER=$(read_field trigger)            # PreCompact (manual|auto)
 CUSTOM_INSTRUCTIONS=$(read_field custom_instructions)  # PreCompact (manual)
@@ -73,7 +81,10 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 0
 fi
 
-# Extract user+assistant text only
+# Extract user+assistant text only. Handles both Claude Code format (top-level
+# "type") and Cursor format (top-level "role"). Both wrap content under
+# message.content as either a string or a list of {type: "text", text: "..."}
+# blocks.
 TRANSCRIPT_TEXT=$(python3 <<EOF
 import json
 out = []
@@ -83,7 +94,8 @@ with open("$TRANSCRIPT_PATH") as f:
             msg = json.loads(line)
         except Exception:
             continue
-        t = msg.get("type")
+        # Claude uses "type", Cursor uses "role" at top level
+        t = msg.get("type") or msg.get("role")
         if t not in ("user", "assistant"):
             continue
         content = msg.get("message", {}).get("content", "")
