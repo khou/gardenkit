@@ -36,6 +36,15 @@ MAX_PER_RUN="${EXTRACT_MAX_PER_RUN:-20}"
 
 log() { echo "$(date): extract-new: $*" >> "$LOG"; }
 
+# Detect stat flavor once (BSD vs GNU) so the same script works on macOS and
+# Linux. BSD stat takes `-f`, GNU takes `-c`. Tested by running each against
+# /dev/null and seeing which one this OS understands.
+if stat -f "%m %N" /dev/null >/dev/null 2>&1; then
+  STAT_MTIME_PATH=(stat -f "%m %N")
+else
+  STAT_MTIME_PATH=(stat -c "%Y %n")
+fi
+
 [ -d "$VAULT" ] || { echo "$(date): extract-new: vault $VAULT missing" >&2; exit 1; }
 [ -x "$EXTRACTOR" ] || { log "extractor not executable at $EXTRACTOR"; exit 1; }
 command -v python3 >/dev/null 2>&1 || { log "python3 not found"; exit 0; }
@@ -72,7 +81,7 @@ log "scan since=$LAST_RUN settle_cutoff=$SETTLE_CUTOFF max=$MAX_PER_RUN"
 CLAUDE_CANDIDATES=""
 if [ -d "$CLAUDE_PROJECTS_DIR" ]; then
   CLAUDE_CANDIDATES=$(find "$CLAUDE_PROJECTS_DIR" -name "*.jsonl" -type f -print0 \
-    | xargs -0 stat -f "%m %N" 2>/dev/null \
+    | xargs -0 "${STAT_MTIME_PATH[@]}" 2>/dev/null \
     | awk -v lo="$LAST_RUN" -v hi="$SETTLE_CUTOFF" -v pd="$CLAUDE_PROJECTS_DIR" -v ve="$VAULT_ENCODED" \
           '$1 > lo && $1 <= hi && $2 !~ ("^" pd "/" ve "(/|--)")' \
     | grep -v '/subagents/' \
@@ -82,12 +91,12 @@ fi
 # --- Cursor candidates ---
 # Cursor's vault-cwd guard: skip any session whose workspace-slug encodes a path
 # under the vault. Cursor encodes workspaces as e.g.
-# "Users-kevin-garden" or "Users-kevin-Library-...-Workspaces-NNN-workspace-json".
+# "Users-<username>-garden" or "Users-<username>-Library-...-Workspaces-NNN-workspace-json".
 # Conservative: drop sessions whose slug starts with the encoded vault path.
 CURSOR_CANDIDATES=""
 if [ -d "$CURSOR_PROJECTS_DIR" ]; then
   CURSOR_CANDIDATES=$(find "$CURSOR_PROJECTS_DIR" -path "*/agent-transcripts/*/*.jsonl" -type f -print0 \
-    | xargs -0 stat -f "%m %N" 2>/dev/null \
+    | xargs -0 "${STAT_MTIME_PATH[@]}" 2>/dev/null \
     | awk -v lo="$LAST_RUN" -v hi="$SETTLE_CUTOFF" -v cd="$CURSOR_PROJECTS_DIR" -v ve="$VAULT_ENCODED" \
           '$1 > lo && $1 <= hi && $2 !~ ("^" cd "/" ve "(/|--)")' \
     || true)
