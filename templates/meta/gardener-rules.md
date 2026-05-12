@@ -7,6 +7,20 @@ updated: YYYY-MM-DD
 
 Heuristics the gardener follows when processing the vault. Update as you notice patterns the gardener gets wrong.
 
+## What the gardener is for: Verify, Organize, Enrich
+
+The gardener is the vault's **out-of-band maintenance loop**. It is the personal-vault equivalent of what Anthropic ships as "dreaming" for agent memory: a batch process that runs separately from the user's hot path, spends compute to keep memory accurate and well-organized, and amortizes that cost across every future recall.
+
+Three explicit jobs every pass should keep in mind:
+
+1. **Verify.** Cross-check existing notes against the rest of the vault and the latest external source material. When a note's claims still hold, stamp it as verified so recall can trust it. When the latest evidence contradicts, set `supersedes:` / `contradicts:` or flag for human review. See "Consistency check" and "Verification stamping" below.
+2. **Organize.** Dedupe, link, regenerate derived MOCs, sweep stale entries. Keep structure converging as content accumulates. See "Dedupe", "Derived taxonomies", and "Stale-entry sweep" below.
+3. **Enrich.** Surface cross-note patterns no single capture could see. Promote recurring themes to synthesis notes. Extend the derived-MOC mechanism beyond entity types to thematic patterns when threshold is met. See "Thematic synthesis" below.
+
+The gardener may spend a non-trivial token budget on this work each pass. The cost is paid once and amortized across every recall. Spend it.
+
+The substrate for verification, in a personal vault, is the rest of the vault plus the connected external sources. (The same principle applied to production agent memory uses a different substrate: service-rename events, span signatures, deploy events, commit SHAs. Substrate differs; loop is the same.)
+
 ## Schema migration
 
 When the gardener convention changes (new frontmatter fields, renamed typed edges, deprecated folders), existing files drift. Each gardener pass detects and corrects drift so a freshly-pulled gardenkit version converges the vault over the next runs without hand-editing.
@@ -142,6 +156,45 @@ This is the one phase where the gardener may set typed edges based on **cross-no
 
 - If two notes cover the same idea: merge into the older one, keep newer note as a redirect with `> See: [[older-note]]` for one cycle, then delete on next run.
 - Flag merges in commit message.
+
+## Verification stamping (positive maintenance)
+
+Companion to the consistency check, which finds *contradictions*. When the gardener cross-checks a note's claims against the rest of the vault and the latest source material and finds it **still accurate**, leave a positive freshness signal so recall can trust the note without re-deriving.
+
+- Use the same sample as the consistency-check phase (this-run scope plus the rolling cap). For each note where claims hold and no contradiction surfaced, set or refresh a `verified: YYYY-MM-DD` frontmatter field with today's date.
+- Optionally append a one-line `> VERIFIED <date>: corroborated by [[a]], [[b]]; no contradicting evidence in last 14 days.` blockquote at the top of the body for high-recall hubs.
+- Cap to ~10 notes per pass. Prioritize notes with oldest `verified:` and notes that are heavily linked-from (high recall value).
+- Don't stamp ambiguous notes. Verification is positive; absence of contradiction is not the same as positive corroboration. When in doubt, leave it.
+
+A note carrying `verified: 2026-05-10` is a stronger recall signal than a note with no stamp at all, because it tells recall the gardener has actually looked at this recently. The pair (positive `verified:`, negative `supersedes:` / `contradicts:`) is the vault analog of what Anthropic's dreaming produces.
+
+## Thematic synthesis (Enrich)
+
+Beyond entity-shaped derived MOCs, surface **thematic patterns** that recur across atomic notes but are not naturally an entity. Examples:
+
+- Same objection appearing in 3+ customer-feedback contexts → propose a recurring-objection synthesis note.
+- Same positive frame validated in 3+ conversations → propose a validated-thesis synthesis note.
+- Same failure mode or strategy across 3+ debug or build sessions → propose a learning synthesis note.
+- A vocabulary shift (new term replacing an old one in 3+ recent notes) → propose a glossary update.
+
+**Threshold**: 3+ atomic notes touching the theme in the last 30 days, where the theme is not already covered by a hub note, MOC, or existing synthesis.
+
+**Output**: a proposed synthesis note in `notes/`, opened with a `> NOTE: gardener proposed synthesis: <theme>; sources [[a]], [[b]], [[c]]. Ratify by editing this blockquote.` blockquote. The user ratifies by removing the NOTE block on a subsequent pass.
+
+**Cap**: at most 2 new synthesis proposals per pass. Quality over quantity.
+
+Run thematic synthesis after derived-MOC regeneration so the regenerated MOCs are available as inputs.
+
+## Stale-entry sweep
+
+Each pass, scan for content that has been factually obsoleted but is still surfacing in active hubs and MOCs:
+
+- **Superseded decisions** older than 60 days with no recent references → propose archival via `> NOTE: gardener flagged for archival: superseded N days ago, no references in last M days.`
+- **Resolved / dropped questions** older than 14 days → archive to `questions/_archive/<YYYY>/` (kept in git history).
+- **Active decisions** not referenced anywhere in the last 90 days → flag with `> NOTE: gardener: decision quiet for 90+ days, still active? <date>` for the user to confirm or reverse.
+- **Stale `verified:` stamps** older than 90 days → eligible for re-verification on next pass; prioritize them in the verification-stamping sample.
+
+Symmetric with verification stamping: stamps amplify what recall should trust; the stale sweep quiets what recall should mistrust.
 
 ## Daily/weekly summarization
 
