@@ -14,6 +14,15 @@
 
 set -e
 
+# Recursion guard. The claude -p worker spawned below is itself a Claude Code
+# session, so if a SessionEnd hook still invokes this script (older installs),
+# the worker's own SessionEnd would re-fire this script, geometrically.
+# We set this env var when invoking the worker; if we see it at startup, we
+# are the nested invocation and exit before doing any work.
+if [ "${GARDENKIT_EXTRACT_NESTED:-}" = "1" ]; then
+  exit 0
+fi
+
 SOURCE_LABEL="${1:-unknown}"
 
 # Source shell profile so claude resolves under non-interactive shells
@@ -163,19 +172,15 @@ $TRANSCRIPT_TEXT
 EOF
 )
 
-# Run extraction in background so the hook returns immediately
-(
-  echo "$PROMPT" | claude -p --permission-mode acceptEdits >> "$LOG" 2>&1
+echo "$PROMPT" | GARDENKIT_EXTRACT_NESTED=1 claude -p --permission-mode acceptEdits >> "$LOG" 2>&1
 
-  cd "$VAULT"
-  if [ -n "$(git status --porcelain inbox/ 2>/dev/null)" ]; then
-    git add inbox/ 2>/dev/null && \
-      git commit -m "capture: $SOURCE_TAG.auto from session $SESSION_ID" -q 2>/dev/null && \
-      echo "$(date): extract[$SOURCE_LABEL]: committed new captures" >> "$LOG"
-  else
-    echo "$(date): extract[$SOURCE_LABEL]: no new captures written" >> "$LOG"
-  fi
-) &
-disown
+cd "$VAULT"
+if [ -n "$(git status --porcelain inbox/ 2>/dev/null)" ]; then
+  git add inbox/ 2>/dev/null && \
+    git commit -m "capture: $SOURCE_TAG.auto from session $SESSION_ID" -q 2>/dev/null && \
+    echo "$(date): extract[$SOURCE_LABEL]: committed new captures" >> "$LOG"
+else
+  echo "$(date): extract[$SOURCE_LABEL]: no new captures written" >> "$LOG"
+fi
 
 exit 0

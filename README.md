@@ -56,7 +56,7 @@ The installer is idempotent. It will:
 1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`. On re-run, top up missing meta files from the latest templates without overwriting your customizations (`cp -n`).
 2. Initialize git in `~/garden/` if not already.
 3. Symlink `skills/garden-*` and `skills/gardener` into `~/.claude/skills/` and `~/.codex/skills/`.
-4. Wire `SessionStart`, `SessionEnd`, and `PreCompact` hooks in `~/.claude/settings.json` (recall + auto-capture on session end and before context compaction). Codex loads the same skills from `~/.codex/skills/`; see [docs/CODEX.md](docs/CODEX.md).
+4. Wire the `SessionStart` hook in `~/.claude/settings.json` so vault context loads at session start. Capture extraction from past sessions runs on the gardener's cron schedule (see [docs/SCHEDULING.md](docs/SCHEDULING.md)), not as a `SessionEnd` hook. Codex loads the same skills from `~/.codex/skills/`; see [docs/CODEX.md](docs/CODEX.md).
 5. Make `scripts/*.sh` executable.
 6. Ask whether to enable `GARDENER_AUTO_APPROVE=1` in `~/.zshrc` so the cron-driven gardener can run unattended (default: off; you can enable later).
 7. Print next steps. If your existing meta files differ from the latest templates, the installer prints a heads-up; the gardener reconciles content drift on its next run.
@@ -112,7 +112,8 @@ gardenkit/
 │   └── gardener/SKILL.md         ← scheduled maintenance
 ├── scripts/
 │   ├── session-start.sh         ← Claude SessionStart hook: pull, inject index/identity
-│   ├── extract-to-inbox.sh      ← Claude SessionEnd + PreCompact hook: extract noteworthy items
+│   ├── extract-new-transcripts.sh ← Gardener cron: scan transcripts since last run
+│   ├── extract-to-inbox.sh      ← Per-transcript extractor invoked by the above
 │   ├── gardener-run.sh          ← Claude cron runner
 │   └── gardener-run-codex.sh    ← Codex cron runner
 ├── templates/                   ← seed files copied into a fresh vault
