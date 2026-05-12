@@ -8,6 +8,8 @@ A cron entry fires `scripts/gardener-run.sh`, which invokes `claude -p` headless
 
 Codex users can use `scripts/gardener-run-codex.sh` instead. See [CODEX.md](CODEX.md) for the Codex-specific setup.
 
+**There is no Cursor gardener.** The Claude (or Codex) cron is the canonical maintainer. Cursor wires a `sessionStart` hook for recall (vault context at conversation start); capture extraction from past Cursor sessions runs on the same gardener cron as Claude does, via `scripts/extract-new-transcripts.sh`. See [CURSOR.md](CURSOR.md).
+
 ### Prerequisites
 
 1. **Log in to Claude headlessly** so the cron-spawned `claude -p` finds OAuth tokens:
@@ -58,6 +60,8 @@ For Codex:
 ```
 7 */4 * * * /Users/<you>/github/gardenkit/scripts/gardener-run-codex.sh
 ```
+
+For Cursor: no separate cron entry. Cursor reads the Claude/Codex-maintained vault; see [CURSOR.md](CURSOR.md).
 
 Verify it's installed:
 

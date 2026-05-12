@@ -7,7 +7,7 @@ The thinking behind gardenkit.
 - **Single vault, all topics.** No per-topic directory structure to switch between.
 - **LLM-maintained.** You capture; the agent organizes.
 - **Obsidian-visualizable.** Plain markdown + wiki-links → graph view, backlinks, tags all work.
-- **Portable across environments.** Works in Claude Code, Codex, Cowork/cloud routines, and Obsidian, with the vault in git.
+- **Portable across environments.** Works in Claude Code, Codex, Cursor, Cowork/cloud routines, and Obsidian, with the vault in git.
 
 ## The vault
 
@@ -80,16 +80,16 @@ The alternatives are honest design choices, not wrong ones. They optimize for a 
 ## The three loops
 
 ### Recall (session start)
-A Claude Code `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/user.md` + `meta/soul.md` to stdout. Claude Code injects this as additional context for the new session. Codex uses the same recall logic through the installed `garden-recall` skill; ask it to use garden recall when you want vault context at the start of a conversation. The agent then follows wiki-links on demand for deeper context.
+A Claude Code `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/user.md` + `meta/soul.md` to stdout. Claude Code injects this as additional context for the new session. Cursor (1.7+) wires the same script via `~/.cursor/hooks.json`'s `sessionStart`; the script auto-detects Cursor via the `$CURSOR_VERSION` env var Cursor sets on every hook invocation and emits JSON `{additional_context: ...}` instead of plain text. Codex doesn't expose a session-start hook, so recall there is skill-driven: ask the agent to use `garden-recall`. The agent follows wiki-links on demand for deeper context.
 
 ### Capture (during/after session)
 The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
 - The user explicitly: "capture this"
-- The gardener cron, which scans Claude Code transcripts ended since the last run and pipes each through the extractor (see below)
+- The gardener cron, which scans transcripts ended since the last run and pipes each through the extractor (see below)
 
-`scripts/extract-new-transcripts.sh` is invoked by `gardener-run.sh` before the main gardener LLM pass. It walks `~/.claude/projects/**/*.jsonl`, picks up transcripts whose mtime is between the last-extract checkpoint and a settle cutoff (skipping in-progress sessions), and feeds each one to `scripts/extract-to-inbox.sh`. The per-transcript extractor reads user+assistant text, runs it through `claude -p` with a focused extraction prompt, and writes one inbox file per noteworthy item. Subagent fragments and the gardener's own vault-cwd sessions are filtered out. State lives at `~/.cache/gardenkit/last-extract-epoch`. Codex capture is skill-driven today: ask it to use `garden-capture`, or run the scheduled gardener over manually added inbox files.
+`scripts/extract-new-transcripts.sh` is invoked by `gardener-run.sh` before the main gardener LLM pass. It walks `~/.claude/projects/**/*.jsonl` (and Cursor's transcript directory if configured), picks up transcripts whose mtime is between the last-extract checkpoint and a settle cutoff (skipping in-progress sessions), and feeds each one to `scripts/extract-to-inbox.sh`. The per-transcript extractor reads user+assistant text, runs it through `claude -p` with a focused extraction prompt, and writes one inbox file per noteworthy item. Subagent fragments and the gardener's own vault-cwd sessions are filtered out. State lives at `~/.cache/gardenkit/last-extract-epoch`. Codex capture is skill-driven today: ask it to use `garden-capture`, or run the scheduled gardener over manually added inbox files.
 
-This used to be wired as a `SessionEnd` / `PreCompact` hook. That design produced a fan-out bug: every `claude -p` worker is itself a Claude Code session whose own `SessionEnd` re-fired the hook, with no concurrency cap. The cron-scan approach decouples extraction from session lifecycle, which removes the recursion surface entirely.
+This used to be wired as a `SessionEnd` / `PreCompact` hook in Claude (and was originally proposed as `sessionEnd` / `preCompact` for Cursor). That design produced a fan-out bug: every `claude -p` worker is itself a Claude Code session whose own `SessionEnd` re-fired the hook, with no concurrency cap. The cron-scan approach decouples extraction from session lifecycle, which removes the recursion surface entirely.
 
 Tunable via env vars:
 - `GARDEN_CAPTURE_MIN_WORDS` (default 200): skip extraction if transcript is shorter
@@ -137,12 +137,12 @@ Skills still exist as the **library functions** that hooks, the cron, and routin
 
 ## Local vs cloud execution
 
-| Concern | Claude Code | Codex | Cloud (Cowork / routine) |
-|---|---|---|---|
-| Session-start recall | `SessionStart` hook (this repo) | `garden-recall` skill on demand | N/A: Cowork loads context differently |
-| End-of-session capture | Gardener cron scans new transcripts (this repo) | `garden-capture` skill on demand | N/A |
-| Gardener | Local cron + headless `claude -p` | Local cron + `codex exec` | Routine via `mcp__scheduled-tasks` or `schedule` skill |
-| Vault access | Direct local FS | Direct local FS | GitHub plugin reads/writes the same git repo |
+| Concern | Claude Code | Codex | Cursor | Cloud (Cowork / routine) |
+|---|---|---|---|---|
+| Session-start recall | `SessionStart` hook (this repo) | `garden-recall` skill on demand | `sessionStart` hook (this repo); same script, auto-detects via `$CURSOR_VERSION` | N/A: Cowork loads context differently |
+| End-of-session capture | Gardener cron scans new transcripts (this repo) | `garden-capture` skill on demand | Gardener cron scans new transcripts (when Cursor transcript dir is configured) | N/A |
+| Gardener | Local cron + headless `claude -p` | Local cron + `codex exec` | (none — Claude maintains the vault on cron) | Routine via `mcp__scheduled-tasks` or `schedule` skill |
+| Vault access | Direct local FS | Direct local FS | Direct local FS | GitHub plugin reads/writes the same git repo |
 
 Vault-in-git is the bridge: both environments operate on the same source of truth, just via different access paths.
 

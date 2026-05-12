@@ -5,14 +5,20 @@
 #   1. Creates ~/garden/ vault from templates if missing (including meta/refresh-sources.md)
 #   2. Initializes git in ~/garden/ if not already
 #   3. Symlinks skills/garden-* and skills/gardener into ~/.claude/skills/
-#      and ~/.codex/skills/
-#   4. Wires the SessionStart hook in ~/.claude/settings.json (capture extraction
-#      runs on the gardener's cron, not a SessionEnd hook -- see SCHEDULING.md)
+#      and ~/.codex/skills/, plus a Cursor-compatible mirror into
+#      $VAULT/.cursor/rules/ as .mdc rules
+#   4. Wires the SessionStart hook in ~/.claude/settings.json AND a
+#      sessionStart hook in ~/.cursor/hooks.json (user-global). Both point
+#      at scripts/session-start.sh, which auto-detects Cursor via
+#      $CURSOR_VERSION and emits JSON when it sees it.
+#      Capture extraction runs on the gardener's cron, not as a session-end
+#      hook -- see docs/SCHEDULING.md.
 #   5. Makes scripts/*.sh executable
 #   6. Optionally enables GARDENER_AUTO_APPROVE in ~/.zshrc for headless cron runs
 #
-# Re-run safe. To uninstall, remove the symlinks in ~/.claude/skills/ and
-# ~/.codex/skills/, plus the hook entries in ~/.claude/settings.json manually.
+# Re-run safe. To uninstall, remove the symlinks in ~/.claude/skills/,
+# ~/.codex/skills/, and $VAULT/.cursor/rules/, plus the hook entries in
+# ~/.claude/settings.json and ~/.cursor/hooks.json manually.
 
 set -euo pipefail
 
@@ -22,6 +28,9 @@ CLAUDE_DIR="$HOME/.claude"
 CLAUDE_SKILLS_DIR="$CLAUDE_DIR/skills"
 CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
 CODEX_SKILLS_DIR="$CODEX_DIR/skills"
+CURSOR_DIR="$HOME/.cursor"
+CURSOR_RULES_DIR="$VAULT/.cursor/rules"
+CURSOR_HOOKS="$CURSOR_DIR/hooks.json"
 SETTINGS="$CLAUDE_DIR/settings.json"
 
 say() { printf "  %s\n" "$*"; }
@@ -81,16 +90,48 @@ link_skills() {
   done
 }
 
-section "3. Skills (symlinks into Claude + Codex skill dirs)"
+link_cursor_rules() {
+  rules_dir="$1"
+
+  say "Cursor -> $rules_dir"
+  mkdir -p "$rules_dir"
+  for src in "$REPO_DIR"/skills/garden-* "$REPO_DIR"/skills/gardener; do
+    [ -d "$src" ] || continue
+    skill=$(basename "$src")
+    skill_md="$src/SKILL.md"
+    [ -f "$skill_md" ] || continue
+    dst="$rules_dir/$skill.mdc"
+    if [ -L "$dst" ]; then
+      say "  $skill.mdc: symlink exists"
+    elif [ -e "$dst" ]; then
+      say "  $skill.mdc: WARN, non-symlink exists at $dst, leaving alone (move it aside to install)"
+    else
+      ln -s "$skill_md" "$dst"
+      say "  $skill.mdc: linked"
+    fi
+  done
+}
+
+section "3. Skills (symlinks into Claude + Codex skill dirs, Cursor rules in vault)"
 link_skills "Claude" "$CLAUDE_SKILLS_DIR"
 link_skills "Codex" "$CODEX_SKILLS_DIR"
+link_cursor_rules "$CURSOR_RULES_DIR"
 
-section "4. Hooks in $SETTINGS"
-say "Wiring the SessionStart hook (loads vault context when a Claude Code session starts)."
-say "Capture extraction now runs on the gardener's cron via scripts/extract-new-transcripts.sh,"
-say "not as a SessionEnd/PreCompact hook. See docs/SCHEDULING.md."
-say "Codex loads the installed skills from $CODEX_SKILLS_DIR. Use scripts/gardener-run-codex.sh or Codex app automations for scheduled runs."
+section "4. Hooks"
+say "Wiring SessionStart in $SETTINGS (Claude)."
+say "Wiring sessionStart in $CURSOR_HOOKS (Cursor, user-global)."
+say "Capture extraction runs on the gardener's cron via scripts/extract-new-transcripts.sh,"
+say "not as a SessionEnd/PreCompact hook (recursion fan-out, see commit f7e222e). Cursor"
+say "follows the same model: only sessionStart is wired."
+say "Codex loads the installed skills from $CODEX_SKILLS_DIR. Capture and recall are skill-driven in Codex; see docs/CODEX.md."
 HOOK_START="$REPO_DIR/scripts/session-start.sh"
+# Cursor uses the same script; it auto-detects Cursor via $CURSOR_VERSION env
+# var (set by Cursor on every hook invocation) and emits JSON instead of
+# plain text. No flag needed -- Cursor doesn't reliably word-split the
+# command field into argv.
+CURSOR_HOOK_START="$HOOK_START"
+
+# --- Claude ---
 if [ ! -f "$SETTINGS" ]; then
   cat > "$SETTINGS" <<EOF
 {
@@ -106,12 +147,12 @@ if [ ! -f "$SETTINGS" ]; then
   }
 }
 EOF
-  say "settings.json created with SessionStart hook"
+  say "Claude settings.json created with SessionStart hook"
 else
   if grep -qF "$HOOK_START" "$SETTINGS"; then
-    say "SessionStart hook already wired"
+    say "Claude SessionStart hook already wired"
   else
-    say "SessionStart hook NOT in settings.json. Add manually under .hooks.SessionStart:"
+    say "Claude SessionStart hook NOT in settings.json. Add manually under .hooks.SessionStart:"
     say "  { \"matcher\": \"startup|resume\", \"hooks\": [{ \"type\": \"command\", \"command\": \"$HOOK_START\" }] }"
   fi
   # Legacy hooks from earlier installs: extract-to-inbox.sh wired as a
@@ -122,6 +163,39 @@ else
     say ""
     say "WARN: settings.json still references extract-to-inbox.sh as a hook."
     say "      Remove the SessionEnd and PreCompact blocks; the gardener's cron"
+    say "      now handles capture extraction. See docs/SCHEDULING.md."
+  fi
+fi
+
+# --- Cursor ---
+# Cursor hooks live at ~/.cursor/hooks.json (user-global), and event names are
+# lowerCamelCase. Same three lifecycle events Claude has.
+mkdir -p "$CURSOR_DIR"
+if [ ! -f "$CURSOR_HOOKS" ]; then
+  cat > "$CURSOR_HOOKS" <<EOF
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      { "type": "command", "command": "$CURSOR_HOOK_START", "timeout": 10 }
+    ]
+  }
+}
+EOF
+  say "Cursor hooks.json created with sessionStart hook"
+else
+  if grep -qF "$CURSOR_HOOK_START" "$CURSOR_HOOKS"; then
+    say "Cursor sessionStart hook already wired"
+  else
+    say "Cursor sessionStart hook NOT in $CURSOR_HOOKS. Add manually under .hooks.sessionStart:"
+    say "  { \"type\": \"command\", \"command\": \"$CURSOR_HOOK_START\" }"
+  fi
+  # Same warning as Claude: legacy sessionEnd / preCompact wiring caused
+  # spawn fan-out via claude -p.
+  if grep -qF "extract-to-inbox.sh" "$CURSOR_HOOKS"; then
+    say ""
+    say "WARN: $CURSOR_HOOKS still references extract-to-inbox.sh as a hook."
+    say "      Remove the sessionEnd and preCompact blocks; the gardener's cron"
     say "      now handles capture extraction. See docs/SCHEDULING.md."
   fi
 fi
@@ -171,15 +245,17 @@ else
 fi
 
 section "Next steps"
-say "1. Fill ~/garden/meta/user.md. Ask Claude or Codex: 'Interview me for my user.md (15 questions).'"
-say "2. Bootstrap your voice profile. Ask Claude or Codex: 'init my voice from Slack' (invokes garden-voice)."
-say "3. Bootstrap your knowledge graph. Ask Claude or Codex: 'init my garden from connected sources' (invokes garden-bootstrap)."
+say "1. Fill ~/garden/meta/user.md. Ask Claude, Codex, or Cursor: 'Interview me for my user.md (15 questions).'"
+say "2. Bootstrap your voice profile. Ask Claude, Codex, or Cursor: 'init my voice from Slack' (invokes garden-voice)."
+say "3. Bootstrap your knowledge graph. Ask Claude, Codex, or Cursor: 'init my garden from connected sources' (invokes garden-bootstrap)."
 say "4. Push the vault to a private GitHub repo:"
 say "     cd ~/garden && git remote add origin git@github.com:<you>/garden.git && git push -u origin main"
-say "5. Log in to whichever CLI you want to run headlessly:"
+say "5. Log in to the CLI you want to run the gardener as (canonically Claude; Codex is an alternative):"
 say "     claude /login"
 say "     codex login"
 say "   (If you have ANTHROPIC_API_KEY exported, unset it first; env-var auth overrides your subscription.)"
 say "6. Schedule the gardener. See $REPO_DIR/docs/SCHEDULING.md"
 say ""
-say "Restart Claude Code to activate the SessionStart hook, or restart Codex so it sees the newly linked skills."
+say "Cursor users don't run their own gardener: the Claude/Codex cron maintains the vault, and Cursor's hooks call back into Claude for capture/recall. See docs/CURSOR.md."
+say ""
+say "Restart Claude Code to activate hooks, or restart Cursor so it picks up $CURSOR_HOOKS and the vault rules."
