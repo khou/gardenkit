@@ -85,14 +85,17 @@ A Claude Code `SessionStart` hook pulls latest from git and prints `00-index.md`
 ### Capture (during/after session)
 The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
 - The user explicitly: "capture this"
-- The `SessionEnd` hook: when a session ends, extracts noteworthy items from the transcript into inbox files
-- The `PreCompact` hook: when context is about to be compacted (auto or manual `/compact`), captures items from the soon-to-be-truncated portion before they're lost. Honors `custom_instructions` from manual compactions as a hint to the extractor.
+- The gardener cron, which scans Claude Code transcripts ended since the last run and pipes each through the extractor (see below)
 
-Both Claude auto-capture hooks share `scripts/extract-to-inbox.sh`, parameterized by source label. The script reads the transcript, pipes user+assistant text through `claude -p` with a focused extraction prompt, writes one inbox file per noteworthy item, and runs the heavy work in the background so the hook returns immediately. Codex capture is skill-driven today: ask it to use `garden-capture`, or run the scheduled gardener over manually added inbox files.
+`scripts/extract-new-transcripts.sh` is invoked by `gardener-run.sh` before the main gardener LLM pass. It walks `~/.claude/projects/**/*.jsonl`, picks up transcripts whose mtime is between the last-extract checkpoint and a settle cutoff (skipping in-progress sessions), and feeds each one to `scripts/extract-to-inbox.sh`. The per-transcript extractor reads user+assistant text, runs it through `claude -p` with a focused extraction prompt, and writes one inbox file per noteworthy item. Subagent fragments and the gardener's own vault-cwd sessions are filtered out. State lives at `~/.cache/gardenkit/last-extract-epoch`. Codex capture is skill-driven today: ask it to use `garden-capture`, or run the scheduled gardener over manually added inbox files.
+
+This used to be wired as a `SessionEnd` / `PreCompact` hook. That design produced a fan-out bug: every `claude -p` worker is itself a Claude Code session whose own `SessionEnd` re-fired the hook, with no concurrency cap. The cron-scan approach decouples extraction from session lifecycle, which removes the recursion surface entirely.
 
 Tunable via env vars:
 - `GARDEN_CAPTURE_MIN_WORDS` (default 200): skip extraction if transcript is shorter
-- `GARDEN_CAPTURE_MAX_ITEMS` (default 5): cap captures per run
+- `GARDEN_CAPTURE_MAX_ITEMS` (default 5): cap captures per transcript
+- `EXTRACT_SETTLE_MINUTES` (default 10): skip transcripts modified within the last N min
+- `EXTRACT_MAX_PER_RUN` (default 20): cap transcripts processed per cron tick
 
 Inbox files stay raw. The gardener decides what to keep and where to file it.
 
@@ -126,18 +129,18 @@ Used whenever the agent drafts something *as* the user: Slack replies, emails, P
 
 Per the source material, having a calibrated voice profile is reportedly the single biggest output-quality multiplier for any drafting work. Sampling actual messages beats abstract self-description by a wide margin.
 
-## Why hooks instead of skills-as-commands
+## Why automation instead of skills-as-commands
 
-A second brain that requires manual invocation isn't a brain: it's a filing cabinet. Hooks make recall and capture *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
+A second brain that requires manual invocation isn't a brain: it's a filing cabinet. The `SessionStart` hook (for recall) and the gardener's cron (for capture extraction and filing) make the loop *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
 
-Skills still exist as the **library functions** that hooks (and routines) call. They're also the manual escape hatch when automation misses something.
+Skills still exist as the **library functions** that hooks, the cron, and routines call. They're also the manual escape hatch when automation misses something.
 
 ## Local vs cloud execution
 
 | Concern | Claude Code | Codex | Cloud (Cowork / routine) |
 |---|---|---|---|
 | Session-start recall | `SessionStart` hook (this repo) | `garden-recall` skill on demand | N/A: Cowork loads context differently |
-| End-of-session capture | `SessionEnd` + `PreCompact` hooks (this repo) | `garden-capture` skill on demand | N/A |
+| End-of-session capture | Gardener cron scans new transcripts (this repo) | `garden-capture` skill on demand | N/A |
 | Gardener | Local cron + headless `claude -p` | Local cron + `codex exec` | Routine via `mcp__scheduled-tasks` or `schedule` skill |
 | Vault access | Direct local FS | Direct local FS | GitHub plugin reads/writes the same git repo |
 

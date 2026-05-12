@@ -63,7 +63,7 @@ Run the gardener skill on the vault at ~/garden. Process inbox, maintain links, 
 
 ## Hook parity
 
-Claude Code supports SessionStart, SessionEnd, and PreCompact hooks, and gardenkit wires those automatically in `~/.claude/settings.json`.
+Claude Code's `SessionStart` hook is wired automatically in `~/.claude/settings.json` so vault context loads at session start. Capture extraction is no longer hook-driven (it ran as a `SessionEnd` hook in earlier versions, which fanned out because every `claude -p` worker triggered its own `SessionEnd`); it now runs on the gardener's cron via `scripts/extract-new-transcripts.sh`.
 
 Codex currently gets the garden behavior through installed skills and scheduled runs. If you want session-start recall in a Codex conversation, ask:
 

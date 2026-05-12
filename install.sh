@@ -6,7 +6,8 @@
 #   2. Initializes git in ~/garden/ if not already
 #   3. Symlinks skills/garden-* and skills/gardener into ~/.claude/skills/
 #      and ~/.codex/skills/
-#   4. Wires SessionStart, SessionEnd, and PreCompact hooks in ~/.claude/settings.json
+#   4. Wires the SessionStart hook in ~/.claude/settings.json (capture extraction
+#      runs on the gardener's cron, not a SessionEnd hook -- see SCHEDULING.md)
 #   5. Makes scripts/*.sh executable
 #   6. Optionally enables GARDENER_AUTO_APPROVE in ~/.zshrc for headless cron runs
 #
@@ -85,11 +86,11 @@ link_skills "Claude" "$CLAUDE_SKILLS_DIR"
 link_skills "Codex" "$CODEX_SKILLS_DIR"
 
 section "4. Hooks in $SETTINGS"
-say "Claude Code supports SessionStart/SessionEnd/PreCompact hooks; wiring those now."
+say "Wiring the SessionStart hook (loads vault context when a Claude Code session starts)."
+say "Capture extraction now runs on the gardener's cron via scripts/extract-new-transcripts.sh,"
+say "not as a SessionEnd/PreCompact hook. See docs/SCHEDULING.md."
 say "Codex loads the installed skills from $CODEX_SKILLS_DIR. Use scripts/gardener-run-codex.sh or Codex app automations for scheduled runs."
 HOOK_START="$REPO_DIR/scripts/session-start.sh"
-HOOK_END="$REPO_DIR/scripts/extract-to-inbox.sh session"
-HOOK_COMPACT="$REPO_DIR/scripts/extract-to-inbox.sh pre-compact"
 if [ ! -f "$SETTINGS" ]; then
   cat > "$SETTINGS" <<EOF
 {
@@ -101,36 +102,28 @@ if [ ! -f "$SETTINGS" ]; then
           { "type": "command", "command": "$HOOK_START" }
         ]
       }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          { "type": "command", "command": "$HOOK_END" }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          { "type": "command", "command": "$HOOK_COMPACT" }
-        ]
-      }
     ]
   }
 }
 EOF
-  say "settings.json created with SessionStart + SessionEnd + PreCompact hooks"
+  say "settings.json created with SessionStart hook"
 else
-  for h in "SessionStart:$HOOK_START" "SessionEnd:$HOOK_END" "PreCompact:$HOOK_COMPACT"; do
-    name="${h%%:*}"
-    cmd="${h#*:}"
-    if grep -qF "$cmd" "$SETTINGS"; then
-      say "$name hook already wired"
-    else
-      say "$name hook NOT in settings.json. Add manually under .hooks.$name:"
-      say "  { \"hooks\": [{ \"type\": \"command\", \"command\": \"$cmd\" }] }"
-    fi
-  done
+  if grep -qF "$HOOK_START" "$SETTINGS"; then
+    say "SessionStart hook already wired"
+  else
+    say "SessionStart hook NOT in settings.json. Add manually under .hooks.SessionStart:"
+    say "  { \"matcher\": \"startup|resume\", \"hooks\": [{ \"type\": \"command\", \"command\": \"$HOOK_START\" }] }"
+  fi
+  # Legacy hooks from earlier installs: extract-to-inbox.sh wired as a
+  # SessionEnd / PreCompact hook caused a recursion fan-out (every claude -p
+  # worker the script spawned was itself a Claude Code session whose own
+  # SessionEnd re-fired the hook). Warn but do not auto-edit user settings.
+  if grep -qF "extract-to-inbox.sh" "$SETTINGS"; then
+    say ""
+    say "WARN: settings.json still references extract-to-inbox.sh as a hook."
+    say "      Remove the SessionEnd and PreCompact blocks; the gardener's cron"
+    say "      now handles capture extraction. See docs/SCHEDULING.md."
+  fi
 fi
 
 section "5. Make scripts executable"

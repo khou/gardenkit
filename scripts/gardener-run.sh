@@ -47,6 +47,15 @@ if git remote get-url origin >/dev/null 2>&1; then
   }
 fi
 
+# Harvest captures from any Claude Code transcripts that ended since the last
+# run. Synchronous: extract-new-transcripts.sh iterates serially and is capped
+# per run, so a backlog won't blow up this cron tick.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$SCRIPT_DIR/extract-new-transcripts.sh" ]; then
+  "$SCRIPT_DIR/extract-new-transcripts.sh" >> "$LOG" 2>&1 || \
+    log "gardener-run: extract-new-transcripts failed (continuing)"
+fi
+
 # Invoke gardener skill via headless Claude.
 # Cron has no TTY to approve permission prompts. If GARDENER_AUTO_APPROVE=1
 # is exported in the user's shell profile, pass --dangerously-skip-permissions
