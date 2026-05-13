@@ -28,11 +28,11 @@ This system gives you all three. The vault is plain markdown so Obsidian renders
         │                     │                     │
    ┌────▼────┐         ┌──────▼──────┐       ┌──────▼──────┐
    │ Obsidian│         │ Claude Code │       │  gardener   │
-   │  (you)  │         │ Codex/Cursor│       │   (cron)    │
+   │  (you)  │         │   / Cursor  │       │ (scheduled) │
    └─────────┘         └─────────────┘       └─────────────┘
                           ↑       ↑                ↑
-                    skills/hooks  rules     cron schedule
-                                            (claude -p or codex exec)
+                    skills/hooks  rules     Desktop Routine
+                                            or cron + API key
 ```
 
 - **Capture** writes to `inbox/`: fire-and-forget.
@@ -55,23 +55,22 @@ The installer is idempotent. It will:
 
 1. Create `~/garden/` (your private vault) if missing, seeded from `templates/`. On re-run, top up missing meta files from the latest templates without overwriting your customizations (`cp -n`).
 2. Initialize git in `~/garden/` if not already.
-3. Symlink `skills/garden-*` and `skills/gardener` into `~/.claude/skills/` and `~/.codex/skills/`, and mirror them as `.mdc` rules under `~/garden/.cursor/rules/` for Cursor.
+3. Symlink `skills/garden-*` and `skills/gardener` into `~/.claude/skills/`, and mirror them as `.mdc` rules under `~/garden/.cursor/rules/` for Cursor.
 4. Wire `SessionStart` hooks so vault context loads when a session starts:
    - Claude: `SessionStart` in `~/.claude/settings.json`.
    - Cursor (1.7+): `sessionStart` in `~/.cursor/hooks.json` (user-global). Same `scripts/session-start.sh`; the script auto-detects Cursor via `$CURSOR_VERSION` and emits the JSON Cursor expects. See [docs/CURSOR.md](docs/CURSOR.md).
-   - Codex: no equivalent session-start hook; ask the agent to use `garden-recall` instead. See [docs/CODEX.md](docs/CODEX.md).
-   Capture extraction from past sessions runs on the gardener's cron schedule (see [docs/SCHEDULING.md](docs/SCHEDULING.md)), not as a `SessionEnd` hook — the old hook design fanned out into a recursion bug.
+   Capture extraction from past sessions runs on the gardener's schedule (see [docs/SCHEDULING.md](docs/SCHEDULING.md)), not as a `SessionEnd` hook — the old hook design fanned out into a recursion bug.
 5. Make `scripts/*.sh` executable.
-6. Ask whether to enable `GARDENER_AUTO_APPROVE=1` in `~/.zshrc` so the cron-driven gardener can run unattended (default: off; you can enable later).
+6. Ask which scheduling path you want — Claude Code Desktop Local Routine (default, free with subscription) or cron + `ANTHROPIC_API_KEY` (Cursor-only / no-Desktop, API-billed) — and print the appropriate setup instructions.
 7. Print next steps. If your existing meta files differ from the latest templates, the installer prints a heads-up; the gardener reconciles content drift on its next run.
 
 It will **not** overwrite existing files in your vault or remove anything.
 
 ## Next steps after install
 
-1. **Fill `~/garden/meta/user.md`** by asking Claude, Codex, or Cursor to interview you (15 questions).
-2. **Bootstrap your voice profile.** Ask Claude, Codex, or Cursor to "init my voice from Slack" (invokes the `garden-voice` skill). Pulls your sent messages, synthesizes patterns into `meta/voice.md`. Loaded on-demand whenever the agent drafts in your voice.
-3. **Bootstrap your knowledge graph from connected data sources.** Ask Claude, Codex, or Cursor to "init my garden from connected sources" (invokes the `garden-bootstrap` skill). Surveys which MCPs are connected (Gmail, Google Drive, Slack are most common), then pulls people, projects, decisions, transcripts, investor / customer state, and writes them as atomic notes and people files. The skill also asks which sources the gardener should keep refreshing on every scheduled run, and writes that decision to `meta/refresh-sources.md`. After the pull, the skill suggests additional data sources you might want to connect for richer context, for example:
+1. **Fill `~/garden/meta/user.md`** by asking Claude or Cursor to interview you (15 questions).
+2. **Bootstrap your voice profile.** Ask Claude or Cursor to "init my voice from Slack" (invokes the `garden-voice` skill). Pulls your sent messages, synthesizes patterns into `meta/voice.md`. Loaded on-demand whenever the agent drafts in your voice.
+3. **Bootstrap your knowledge graph from connected data sources.** Ask Claude or Cursor to "init my garden from connected sources" (invokes the `garden-bootstrap` skill). Surveys which MCPs are connected (Gmail, Google Drive, Slack are most common), then pulls people, projects, decisions, transcripts, investor / customer state, and writes them as atomic notes and people files. The skill also asks which sources the gardener should keep refreshing on every scheduled run, and writes that decision to `meta/refresh-sources.md`. After the pull, the skill suggests additional data sources you might want to connect for richer context, for example:
    - Meeting transcript services (Granola, Fireflies, Otter, Zoom AI, Read.ai)
    - CRM / sales pipeline (HubSpot, Salesforce, Close, Attio)
    - Issue tracker / project management (Linear, Jira, Asana, Notion, ClickUp)
@@ -90,17 +89,11 @@ It will **not** overwrite existing files in your vault or remove anything.
    git remote add origin git@github.com:<you>/garden.git
    git push -u origin main
    ```
-5. **Log in to your headless agent CLI** so the scheduled gardener can run without a TTY. For Claude:
-   ```bash
-   claude /login
-   ```
-   This stores OAuth tokens that the cron-spawned `claude -p` will read. Without this, the gardener fails with `Not logged in · Please run /login` in `~/garden/.gardener-log`. If you have an `ANTHROPIC_API_KEY` exported in your shell, unset it first; the CLI prefers env-var auth over your subscription, and cron will bill that key instead of using your Claude subscription.
-   For Codex-based gardening:
-   ```bash
-   codex login
-   ```
-   Then use `scripts/gardener-run-codex.sh`. Cursor users don't run their own gardener: the Claude (or Codex) cron maintains the vault, and Cursor's lifecycle hooks call back into Claude for capture/recall. See [docs/CURSOR.md](docs/CURSOR.md).
-6. **Schedule the gardener** via local cron (or optionally a cloud routine), see [docs/SCHEDULING.md](docs/SCHEDULING.md). If you skipped step 3, populate `meta/refresh-sources.md` first (the template has examples) so the gardener's external-refresh phase has something to pull. For Codex-specific notes, see [docs/CODEX.md](docs/CODEX.md); for Cursor, see [docs/CURSOR.md](docs/CURSOR.md).
+5. **Schedule the gardener.** Two paths — pick what fits in [docs/SCHEDULING.md](docs/SCHEDULING.md):
+   - **Default**: a Claude Code Desktop Local Routine, every 4 hours, free with your Pro/Max subscription. Ask Claude in any Desktop session to "set up the gardener routine" and approve the dialog.
+   - **Fallback**: cron + `ANTHROPIC_API_KEY` for Cursor-only users, or Claude users who don't want Desktop pinned open. Note: API keys bill against your API account, which is separate from Pro/Max — the subscription does **not** include API credits.
+
+   If you skipped step 3, populate `meta/refresh-sources.md` first (the template has examples) so the gardener's external-refresh phase has something to pull. Cursor specifics: [docs/CURSOR.md](docs/CURSOR.md).
 
 ## Layout
 
@@ -116,19 +109,18 @@ gardenkit/
 │   └── gardener/SKILL.md         ← scheduled maintenance
 ├── scripts/
 │   ├── session-start.sh         ← SessionStart hook (Claude plain text; Cursor JSON via $CURSOR_VERSION auto-detect)
-│   ├── extract-new-transcripts.sh ← Gardener cron: scan transcripts since last run
+│   ├── extract-new-transcripts.sh ← Scheduled gardener: scan transcripts since last run
 │   ├── extract-to-inbox.sh      ← Per-transcript extractor invoked by the above
-│   ├── gardener-run.sh          ← Claude cron runner
-│   └── gardener-run-codex.sh    ← Codex cron runner
+│   └── gardener-run.sh          ← Cron fallback runner (requires ANTHROPIC_API_KEY)
 ├── templates/                   ← seed files copied into a fresh vault
 │   ├── 00-index.md
 │   ├── README.md
+│   ├── scheduled-task-gardener.md ← canonical prompt body for the scheduled gardener (shared by Desktop Routine and cron paths)
 │   ├── meta/{user,soul,gardener-rules,derived-taxonomies,migration-state,refresh-sources}.md
 │   └── projects/EXAMPLE.md
 └── docs/
     ├── ARCHITECTURE.md          ← the design and reasoning
-    ├── SCHEDULING.md            ← cron setup (and optional routines)
-    ├── CODEX.md                 ← Codex install + scheduling notes
+    ├── SCHEDULING.md            ← Desktop Local Routine (default), cron fallback, cloud option
     └── CURSOR.md                ← Cursor install + scheduling notes
 ```
 
