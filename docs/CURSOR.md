@@ -1,6 +1,8 @@
 # Using gardenkit with Cursor
 
-Cursor reads the same vault Claude does. The gardener stays on the Claude side: it runs on cron, maintains the vault, and pushes the result. Cursor consumes the maintained vault for recall, and its sessions get captured into `inbox/` by the same gardener cron that already scans Claude transcripts. **You don't run a separate Cursor gardener.**
+Cursor reads the same vault Claude does. The gardener stays on the Claude side: it runs on a schedule, maintains the vault, and pushes the result. Cursor consumes the maintained vault for recall, and its sessions get captured into `inbox/` by the same gardener pass that scans Claude transcripts. **You don't run a separate Cursor gardener.**
+
+The gardener runs as `claude -p`. If you have Claude Code Desktop, prefer setting it up as a Local Routine (free with your subscription, no auth headaches). If you're Cursor-only, the cron path requires `ANTHROPIC_API_KEY` and bills against your API account — see [docs/SCHEDULING.md](SCHEDULING.md).
 
 ```bash
 ./install.sh
@@ -28,8 +30,9 @@ GARDEN_VAULT=/path/to/vault ./install.sh
 
 ```
                   ┌─────────────────────┐
-   cron tick ───▶ │  Claude gardener    │ ──▶ writes ~/garden, pushes
-                  │   (gardener-run.sh) │
+   schedule ────▶ │  Claude gardener    │ ──▶ writes ~/garden, pushes
+                  │  (Desktop Routine   │
+                  │   or cron fallback) │
                   └──────────┬──────────┘
                              │
                   scans ~/.claude/projects + ~/.cursor/projects
@@ -49,9 +52,9 @@ One canonical maintenance loop. Cursor is a reader, and its transcripts are an i
 
 > ⚠️ There's a known bug in some recent Cursor builds where `sessionStart`'s `additional_context` is accepted but not delivered to the agent (see [forum thread](https://forum.cursor.com/t/sessionstart-hook-additional-context-is-never-injected-into-agents-initial-system-context/158452)). The git-pull side effect still runs, and you can fall back by asking the agent to "use garden-recall" at the start of a conversation if vault context is missing.
 
-## Capture: handled by the gardener cron, not a Cursor hook
+## Capture: handled by the scheduled gardener, not a Cursor hook
 
-When the gardener cron fires (Claude or Codex side), it runs `scripts/extract-new-transcripts.sh` before the main LLM pass. The scanner walks two directories:
+When the gardener fires (local routine or cron fallback), it runs `scripts/extract-new-transcripts.sh` before the main LLM pass. The scanner walks two directories:
 
 - `~/.claude/projects/**/*.jsonl` (Claude Code sessions)
 - `~/.cursor/projects/<workspace>/agent-transcripts/<uuid>/*.jsonl` (Cursor sessions — undocumented internal as of 2026-05, may change. Override with `GARDENKIT_CURSOR_PROJECTS_DIR=/new/path` if Cursor relocates it.)
@@ -92,4 +95,4 @@ For sessions you don't explicitly capture in, the gardener picks them up later f
 |---|---|---|---|
 | Session start, inject vault context | `SessionStart` | `sessionStart` | `scripts/session-start.sh` (auto-detects Cursor via `$CURSOR_VERSION`) |
 | Session end / pre-compact capture | (not wired; cron-scan instead) | (not wired; cron-scan instead) | gardener cron runs `scripts/extract-new-transcripts.sh`, which scans both Claude and Cursor transcript dirs |
-| Schedule the gardener | cron + `gardener-run.sh` | (Claude/Codex does it) | n/a in Cursor |
+| Schedule the gardener | Desktop Local Routine (default) or cron + `gardener-run.sh` | (Claude maintains the vault) | cron + `gardener-run.sh` with `ANTHROPIC_API_KEY` |

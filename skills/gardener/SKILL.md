@@ -192,12 +192,10 @@ If no changes, skip commit.
 
 ## Invocation
 
-Headless via cron / routine:
+The canonical invocation is a Claude Code Desktop scheduled task (Routines page → Local) that uses the prompt at `templates/scheduled-task-gardener.md`. See [docs/SCHEDULING.md](../../docs/SCHEDULING.md). For the cron fallback path, `scripts/gardener-run.sh` reads the same prompt template and runs:
+
 ```bash
-claude -p "Run the gardener skill. Today is $(date +%Y-%m-%d)."
+claude -p --dangerously-skip-permissions "<prompt from templates/scheduled-task-gardener.md>"
 ```
 
-For Codex:
-```bash
-codex exec -C ~/garden --full-auto "Run the gardener skill. Today is $(date +%Y-%m-%d)."
-```
+Both paths run the same prompt body, so the gardener's behavior is identical regardless of scheduler.
