@@ -1,6 +1,6 @@
 # Scheduling the gardener
 
-The gardener is one LLM agent that runs through all phases each pass: pull external diffs into `inbox/`, extract captures from new Claude/Cursor transcripts, then file, link, dedupe, summarize, commit, push. The scheduler just triggers it.
+The gardener is one LLM agent that runs through all phases each pass: file inbox captures, link, dedupe, summarize, commit, push. The scheduler just triggers it.
 
 Three paths, in order of preference:
 
@@ -22,10 +22,7 @@ A scheduled task inside [Claude Code Desktop](https://code.claude.com/docs/en/de
 
 ### Prerequisites
 
-1. Claude Code Desktop installed. Download from [code.claude.com/docs/en/desktop-quickstart](https://code.claude.com/docs/en/desktop-quickstart). Open the **Code** tab once and sign in with the same account that has your Pro/Max plan.
-2. `~/garden/meta/refresh-sources.md` populated. The gardener's external-refresh phase reads this as the source of truth for which MCPs (Gmail, Drive, Slack, etc.) to pull from. Two ways to populate it:
-   - **Easy path**: run `garden-bootstrap` in `init` mode interactively. The skill asks you, per surveyed source, whether the gardener should keep refreshing it, and writes the file.
-   - **Manual path**: edit `~/garden/meta/refresh-sources.md` directly. The template includes commented-out examples.
+Claude Code Desktop installed. Download from [code.claude.com/docs/en/desktop-quickstart](https://code.claude.com/docs/en/desktop-quickstart). Open the **Code** tab once and sign in with the same account that has your Pro/Max plan.
 
 ### Setup
 
@@ -39,11 +36,11 @@ Claude calls `mcp__scheduled-tasks__create_scheduled_task` with `cronExpression:
 
 ### First-run permission priming
 
-The gardener calls Bash (for transcript extraction), uses connected MCPs (for external refresh), and writes to `~/garden` + git. By default each MCP/tool surface prompts the first time. To unattend future runs:
+The gardener reads + writes inside `~/garden/` and does a `git push`. By default each tool surface prompts the first time. To unattend future runs:
 
 1. Open Desktop **Routines** → click the **gardener** task.
 2. Click **Run now**.
-3. Watch the running session in the sidebar. As permission prompts appear (Bash, Gmail read, Slack read, Drive read, git push, etc.), click **always allow** for each.
+3. Watch the running session in the sidebar. As permission prompts appear (file edits, git push), click **always allow** for each.
 4. Wait for the run to finish. Subsequent runs auto-approve the same tools.
 
 You can review and revoke approvals later from the task's **Always allowed** panel.
@@ -59,7 +56,7 @@ For Cursor-only users, or Claude users who don't want the Desktop app pinned ope
 
 ### Cost warning
 
-Setting `ANTHROPIC_API_KEY` in your shell makes Claude Code use the **API account**, not your Pro/Max subscription. **Subscriptions do not include API credits.** A 6×/day gardener that does real filing/refresh/dedup work — depending on vault size and MCP activity — can run real money over a month. See [Use Claude Code with your Pro or Max plan](https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan).
+Setting `ANTHROPIC_API_KEY` in your shell makes Claude Code use the **API account**, not your Pro/Max subscription. **Subscriptions do not include API credits.** A 6×/day gardener that does real filing/dedup work — depending on vault size — can run real money over a month. See [Use Claude Code with your Pro or Max plan](https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan).
 
 If billing matters and you have Claude Code Desktop available, use the [local routine path](#default-claude-code-desktop-local-routine) instead.
 
@@ -76,14 +73,12 @@ On macOS, cron runs in a launchd daemon context that **cannot reach the login ke
    ```
    Open a fresh terminal so the export propagates.
 
-2. Populate `~/garden/meta/refresh-sources.md` (same as the [local-routine setup](#prerequisites)).
-
-3. Install the cron entry (every 4 hours, off-minute to stagger):
+2. Install the cron entry (every 4 hours, off-minute to stagger):
    ```bash
    ( crontab -l 2>/dev/null; echo "7 */4 * * * /Users/<you>/github/gardenkit/scripts/gardener-run.sh" ) | crontab -
    ```
 
-4. Verify:
+3. Verify:
    ```bash
    crontab -l | grep gardener
    ```
@@ -92,13 +87,12 @@ On macOS, cron runs in a launchd daemon context that **cannot reach the login ke
 
 `gardener-run.sh` invokes `claude -p --dangerously-skip-permissions` unconditionally on this path. The cron context has no TTY to approve prompts, so it has to run fully autonomous or not at all.
 
-The gardener's **read-only-on-external-sources contract** lives in the prompt itself: it pulls from MCPs but never sends email, posts to Slack, modifies Drive files, etc. The contract is enforced by the LLM following its skill rules; `--dangerously-skip-permissions` does not enforce it at the harness layer. If your global MCPs include high-stakes write tools, consider scoping them to read-only at the MCP layer or moving them out of `~/.claude/settings.json` so cron-spawned Claude can't see them.
+The gardener writes only to `~/garden/` and its git remote — it doesn't reach out to external services. If your global `~/.claude/settings.json` configures MCPs with high-stakes write tools, those would still be reachable in principle by a misbehaving cron-spawned Claude; consider scoping them to read-only at the MCP layer or moving them out of global settings so cron-spawned Claude can't see them.
 
 ### Caveats
 
 - Your laptop must be awake/on for cron to fire. If it sleeps through 03:07, the run is skipped (no catch-up, unlike the Desktop path).
 - Cron has a minimal PATH. `gardener-run.sh` sources `~/.zshrc` to find `claude`. If you're on bash, edit the script.
-- The MCPs available to cron-spawned `claude -p` come from your **global** `~/.claude/settings.json`. Project-scoped MCPs won't appear.
 - macOS may require granting cron Full Disk Access: System Settings → Privacy & Security → Full Disk Access → add `/usr/sbin/cron`.
 
 ## Always-on: cloud routine
@@ -110,8 +104,6 @@ Like the cron path, **this is billed per agent run**, separate from your Claude 
 Caveats specific to cloud routines:
 
 - The routine clones your vault on each run, so `~/garden` must live on a git remote it can reach.
-- Connected MCPs must be configured server-side via Anthropic connectors, not your local `~/.claude/settings.json`.
-- `scripts/extract-new-transcripts.sh` reads JSONL files from `~/.claude/projects/` and `~/.cursor/projects/`, both of which only exist on your laptop. **Cloud routines lose the transcript-extraction half of the gardener.** Captures still flow if you explicitly invoke `garden-capture`, but session-level auto-extraction silently degrades.
 
 The cloud path is reasonable if you've already accepted those trade-offs. Otherwise prefer the local routine.
 
@@ -143,11 +135,7 @@ The local-routine path doesn't write to `.gardener-log`; check Desktop **Routine
 
 **`git push failed`:** the cron user can't auth to GitHub. Make sure your SSH key works headlessly (`ssh -T git@github.com` from a fresh shell), or use a credential helper.
 
-**Gardener never commits anything:** the gardener is conservative. If there's nothing in `inbox/`, no external diffs since the last run, and no link/dedupe work to do, it exits cleanly with no changes.
-
-**External refresh phase keeps getting skipped:** the gardener skips phase 4 if `~/garden/meta/refresh-sources.md` is missing or has no "Active" entries. Either run `garden-bootstrap` in `init` mode, or edit the file directly.
-
-**Refresh phase runs but writes nothing:** check `~/garden/meta/refresh-sources.md` lists the sources you expect under "Active". If it does, the executing Claude probably can't see the relevant MCPs. For local-routine: open the Desktop app's connector settings. For cron: those come from your global `~/.claude/settings.json`, not project-scoped.
+**Gardener never commits anything:** the gardener is conservative. If `inbox/` is empty and there's no link/dedupe work to do, it exits cleanly with no changes.
 
 **Log file never gets created at all (no `~/garden/.gardener-log`) on cron path:** cron isn't reaching the script's first log write. Most likely macOS Full Disk Access: System Settings → Privacy & Security → Full Disk Access → add `/usr/sbin/cron`. Verify cron itself is firing with `log show --predicate 'process == "cron"' --last 1h | grep gardener`.
 

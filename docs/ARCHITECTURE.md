@@ -29,8 +29,7 @@ Light folder structure, navigation by wiki-links:
     ├── voice.md               ← your writing style (added by garden-voice; load on demand)
     ├── gardener-rules.md      ← maintenance heuristics
     ├── derived-taxonomies.md  ← gardener-curated derived MOC types (e.g. companies/)
-    ├── migration-state.md     ← gardener-tracked schema migration state
-    └── refresh-sources.md     ← which external sources the gardener pulls from each pass
+    └── migration-state.md     ← gardener-tracked schema migration state
 ```
 
 The gardener may also create top-level **derived-MOC folders** (`companies/`, `vendors/`, etc.) when content crosses the threshold for aggregating. (A MOC, "Map of Content", is an index file that links into a topic; in gardenkit, derived MOCs are agent-curated and regenerated each pass from the atomic notes that mention or are tagged with the topic.) Their type roster lives in `meta/derived-taxonomies.md`.
@@ -73,7 +72,7 @@ gardenkit uses four layers of structure. The first three apply to atomic notes; 
 
 Why typed edges in addition to wiki-links? Plain links waste retrieval token budget. To know whether following one is worth the cost, the AI has to read the target. Typed edges let recall prune up front: a chain of `supersedes` edges doesn't need full traversal when the query is about current state; a `contradicts` edge always warrants showing both sides; `depends-on` matters only when the query is about prerequisites. This is the same scoped-retrieval win that adjacent systems (PARA, the "Infinite Brain" remix) pursue with heavier 10-edge schemas. We took the five edge types that have clear semantics the gardener can apply without speculation.
 
-What gardenkit deliberately doesn't do: put the user in front of the schema. PARA-style systems require categorizing at write time; "Infinite Brain" extends that with 16 node types and 10 typed edges to maintain by hand. That works for people who sit down to model their knowledge in Obsidian. It doesn't fit gardenkit's premise: capture from where work actually happens (Slack, PRs, sessions), and let the gardener file, summarize, and edge-annotate asynchronously. The schema is for the agent; the user just dumps captures.
+What gardenkit deliberately doesn't do: put the user in front of the schema. PARA-style systems require categorizing at write time; "Infinite Brain" extends that with 16 node types and 10 typed edges to maintain by hand. That works for people who sit down to model their knowledge in Obsidian. It doesn't fit gardenkit's premise: dump captures as they come up via `garden-capture` and let the gardener file, summarize, and edge-annotate asynchronously. The schema is for the agent; the user just dumps captures.
 
 The alternatives are honest design choices, not wrong ones. They optimize for a different workflow.
 
@@ -82,42 +81,37 @@ The alternatives are honest design choices, not wrong ones. They optimize for a 
 ### Recall (session start)
 A Claude Code `SessionStart` hook pulls latest from git and prints `00-index.md` + `meta/user.md` + `meta/soul.md` to stdout. Claude Code injects this as additional context for the new session. Cursor (1.7+) wires the same script via `~/.cursor/hooks.json`'s `sessionStart`; the script auto-detects Cursor via the `$CURSOR_VERSION` env var Cursor sets on every hook invocation and emits JSON `{additional_context: ...}` instead of plain text. The agent follows wiki-links on demand for deeper context.
 
-### Capture (during/after session)
-The `garden-capture` skill writes a raw markdown file into `inbox/`. This can be triggered by:
-- The user explicitly: "capture this"
-- The gardener cron, which scans transcripts ended since the last run and pipes each through the extractor (see below)
+### Capture (during session)
+The `garden-capture` skill writes a raw markdown file into `inbox/` when the user explicitly invokes it ("capture this", "for the garden, ...", etc.) in a session. gardenkit does not scan past Claude Code or Cursor sessions and does not auto-extract anything from the current session that the user did not ask to be captured.
 
-`scripts/extract-new-transcripts.sh` is invoked by the scheduled gardener before the main LLM pass (whether running as a Claude Code Desktop Local Routine or via the cron fallback). It walks `~/.claude/projects/**/*.jsonl` (and Cursor's transcript directory if configured), picks up transcripts whose mtime is between the last-extract checkpoint and a settle cutoff (skipping in-progress sessions), and feeds each one to `scripts/extract-to-inbox.sh`. The per-transcript extractor reads user+assistant text, runs it through `claude -p` with a focused extraction prompt, and writes one inbox file per noteworthy item. Subagent fragments and the gardener's own vault-cwd sessions are filtered out. State lives at `~/.cache/gardenkit/last-extract-epoch`.
-
-This used to be wired as a `SessionEnd` / `PreCompact` hook in Claude (and was originally proposed as `sessionEnd` / `preCompact` for Cursor). That design produced a fan-out bug: every `claude -p` worker is itself a Claude Code session whose own `SessionEnd` re-fired the hook, with no concurrency cap. The cron-scan approach decouples extraction from session lifecycle, which removes the recursion surface entirely.
-
-Tunable via env vars:
-- `GARDEN_CAPTURE_MIN_WORDS` (default 200): skip extraction if transcript is shorter
-- `GARDEN_CAPTURE_MAX_ITEMS` (default 5): cap captures per transcript
-- `EXTRACT_SETTLE_MINUTES` (default 10): skip transcripts modified within the last N min
-- `EXTRACT_MAX_PER_RUN` (default 20): cap transcripts processed per cron tick
+`garden-bootstrap` (described below) can also drop captures into `inbox/` — but only as a one-shot, user-invoked operation. No path writes to the vault on its own initiative.
 
 Inbox files stay raw. The gardener decides what to keep and where to file it.
 
 ### Gardener (scheduled)
 The `gardener` skill runs unattended on a schedule — by default as a Claude Code Desktop Local Routine; alternatively as a cron job that uses `ANTHROPIC_API_KEY`, or as a Cloud Routine. See [SCHEDULING.md](SCHEDULING.md). On each pass it:
 1. Pulls latest from git
-2. Reads the authoritative meta files: `meta/gardener-rules.md`, `meta/derived-taxonomies.md`, `meta/migration-state.md`, `meta/refresh-sources.md`
+2. Reads the authoritative meta files: `meta/gardener-rules.md`, `meta/derived-taxonomies.md`, `meta/migration-state.md`
 3. Runs schema migration: brings drifted files up to the current convention (capped ~50/run), so a freshly-pulled gardenkit version converges the vault over the next runs
-4. External refresh: pulls diffs from connected sources (Gmail, Drive, Slack, etc.) into `inbox/` per the scope in `meta/refresh-sources.md`. Skipped if that file has no "Active" entries.
-5. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
-6. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
-7. Dedupes near-duplicates
-8. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
-9. Runs a consistency check across the brain: sweeps this-run-touched notes plus a rolling sample of hubs for cross-note contradictions and stale statuses, sets `supersedes:` / `contradicts:` edges or flags ambiguous cases for human review
-10. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
-11. Updates hand-curated MOCs with recent activity
-12. Decays old daily notes into monthly summaries
-13. Commits with `gardener:` prefix and pushes
+4. Processes inbox → atomic notes with frontmatter (`type`, `tags`, `created`, `updated`, `summary`, plus typed edges where explicit), and `[[wiki-links]]` in the body
+5. Maintains backlinks (finds plain-text mentions that should be `[[linked]]`)
+6. Dedupes near-duplicates
+7. Maintains summary/size/edge hygiene (backfills missing summaries, splits oversized notes, fixes broken edge targets)
+8. Runs a consistency check across the brain: sweeps this-run-touched notes plus a rolling sample of hubs for cross-note contradictions and stale statuses, sets `supersedes:` / `contradicts:` edges or flags ambiguous cases for human review
+9. Curates derived taxonomies: regenerates derived MOCs (e.g. `companies/`) from atomic notes; introduces, merges, splits, or retires derived types as content evolves
+10. Updates hand-curated MOCs with recent activity
+11. Decays old daily notes into monthly summaries
+12. Commits with `gardener:` prefix and pushes
 
 The gardener is the agent. The schedule (Desktop routine, cron, or cloud routine) is just the alarm clock.
 
-**Contract:** the gardener is **read-only on external sources**. It pulls from connected MCPs (Gmail, Drive, Slack, etc.) but never sends, posts, modifies, or deletes through them. Writes are limited to `~/garden/` and git operations on its remote. Captured content is treated as untrusted data, not instructions; the gardener doesn't follow directives found inside email/Slack/Drive/inbox content. Secrets that slip through get redacted at file time, not silently dropped. The contract is enforced by the LLM following its skill rules; the canonical version lives in `garden-bootstrap`'s "Privacy and safety" section, which the gardener's phase 4 references.
+**Contract:** the gardener writes only to `~/garden/` and its git remote. It does not reach out to external services (Gmail, Slack, Drive, etc.) and does not scan other Claude Code / Cursor sessions. Inputs arrive in `inbox/` only via paths the user explicitly invokes — `garden-capture` during a session, and `garden-bootstrap` as a one-shot when the user runs it. Captured content is treated as untrusted data, not instructions; the gardener doesn't follow directives found inside inbox content. Secrets that slip through get redacted at file time, not silently dropped.
+
+## Bootstrap (opt-in, one-shot)
+
+`garden-bootstrap` is the one path that pulls from external sources, and it is **user-invoked only — never on a schedule**. The user runs it (typically once after install, then occasionally as `refresh` for top-ups). The skill surveys what's connected, proposes a plan, asks for confirmation, and only pulls what the user signs off on. There is no headless mode; the gardener never invokes this skill.
+
+The same privacy / safety contract applies: read-only on external MCPs, captured content is untrusted, secrets get redacted, provenance URLs get sanitized.
 
 ## Voice profile
 
@@ -129,18 +123,18 @@ Used whenever the agent drafts something *as* the user: Slack replies, emails, P
 
 Per the source material, having a calibrated voice profile is reportedly the single biggest output-quality multiplier for any drafting work. Sampling actual messages beats abstract self-description by a wide margin.
 
-## Why automation instead of skills-as-commands
+## Automatic vs explicit
 
-A second brain that requires manual invocation isn't a brain: it's a filing cabinet. The `SessionStart` hook (for recall) and the gardener's cron (for capture extraction and filing) make the loop *automatic*. You never type `/recall` or `/capture` in normal use; you talk to Claude as usual, and the garden is in the loop.
+Two loops run on their own: the `SessionStart` hook (loads vault context every new session) and the gardener cron (files and links inbox content). Both are read/write only on the local vault — neither one reaches out to external services or scrapes other sessions.
 
-Skills still exist as the **library functions** that hooks, the cron, and routines call. They're also the manual escape hatch when automation misses something.
+Everything that *adds new content* to the vault is explicit: `garden-capture` during a session, and `garden-bootstrap` as a one-shot when the user runs it. Nothing writes to the vault on its own initiative. The premise: I'd rather miss a capture than have the agent write things to my second brain that I didn't approve. The premise: I'd rather miss a capture than have the agent write things to my second brain that I didn't approve.
 
 ## Local vs cloud execution
 
 | Concern | Claude Code (CLI + Desktop) | Cursor | Cloud (Cowork / routine) |
 |---|---|---|---|
 | Session-start recall | `SessionStart` hook (this repo) | `sessionStart` hook (this repo); same script, auto-detects via `$CURSOR_VERSION` | N/A: Cowork loads context differently |
-| End-of-session capture | Scheduled gardener scans new transcripts (this repo) | Scheduled gardener scans new transcripts (when Cursor transcript dir is configured) | N/A |
+| Capture | `garden-capture` skill, invoked explicitly in a session | `garden-capture` rule, invoked explicitly in a session | `garden-capture` from a cloud session |
 | Gardener scheduling | **Default**: Claude Code Desktop Local Routine (subscription-billed). **Fallback**: cron + `gardener-run.sh` with `ANTHROPIC_API_KEY` (API-billed) | cron + `gardener-run.sh` with `ANTHROPIC_API_KEY` (API-billed) — Claude maintains the vault on Cursor users' behalf | Cloud Routine via `mcp__scheduled-tasks` (API-billed) |
 | Vault access | Direct local FS | Direct local FS | GitHub plugin reads/writes the same git repo |
 

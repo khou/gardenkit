@@ -95,9 +95,9 @@ PROMPT=$(sed "s|__GARDENKIT_DIR__|$REPO_DIR|g" "$PROMPT_TEMPLATE")
 
 # Invoke Claude headlessly. Cron has no TTY, so --dangerously-skip-permissions
 # is unconditional for this path -- if you opted into API-key-billed cron,
-# you've already accepted full autonomy. The gardener skill's read-only-on-
-# external-sources contract is the in-prompt guardrail; see docs/SCHEDULING.md
-# for the trust model.
+# you've already accepted full autonomy. The gardener writes only to ~/garden/
+# and its git remote per the in-prompt guardrail; see docs/SCHEDULING.md for
+# the trust model.
 echo "=== gardener run $DATE ===" >> "$LOG"
 
 # Capture output to a temp file so we can both log it and inspect it for failure
