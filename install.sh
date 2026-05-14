@@ -2,7 +2,7 @@
 # gardenkit installer. Idempotent. Never overwrites user files.
 #
 # What it does:
-#   1. Creates ~/garden/ vault from templates if missing (including meta/refresh-sources.md)
+#   1. Creates ~/garden/ vault from templates if missing
 #   2. Initializes git in ~/garden/ if not already
 #   3. Symlinks skills/garden-* and skills/gardener into ~/.claude/skills/,
 #      plus a Cursor-compatible mirror into $VAULT/.cursor/rules/ as .mdc rules
@@ -10,8 +10,8 @@
 #      sessionStart hook in ~/.cursor/hooks.json (user-global). Both point
 #      at scripts/session-start.sh, which auto-detects Cursor via
 #      $CURSOR_VERSION and emits JSON when it sees it.
-#      Capture extraction runs on the gardener's schedule, not as a session-end
-#      hook -- see docs/SCHEDULING.md.
+#      No session-end / pre-compact hook is wired -- capture is explicit-only
+#      via the garden-capture skill.
 #   5. Makes scripts/*.sh executable
 #   6. Prints the per-agent scheduling instructions for the gardener
 #
@@ -57,7 +57,6 @@ cp_if_missing "$REPO_DIR/templates/meta/soul.md" "$VAULT/meta/soul.md"
 cp_if_missing "$REPO_DIR/templates/meta/gardener-rules.md" "$VAULT/meta/gardener-rules.md"
 cp_if_missing "$REPO_DIR/templates/meta/derived-taxonomies.md" "$VAULT/meta/derived-taxonomies.md"
 cp_if_missing "$REPO_DIR/templates/meta/migration-state.md" "$VAULT/meta/migration-state.md"
-cp_if_missing "$REPO_DIR/templates/meta/refresh-sources.md" "$VAULT/meta/refresh-sources.md"
 
 # If meta files differ from templates, the gardener will reconcile content
 # drift on its next run; this just surfaces that drift exists.
@@ -123,9 +122,7 @@ link_cursor_rules "$CURSOR_RULES_DIR"
 section "4. Hooks"
 say "Wiring SessionStart in $SETTINGS (Claude)."
 say "Wiring sessionStart in $CURSOR_HOOKS (Cursor, user-global)."
-say "Capture extraction runs on the gardener's schedule via scripts/extract-new-transcripts.sh,"
-say "not as a SessionEnd/PreCompact hook (recursion fan-out, see commit f7e222e). Cursor"
-say "follows the same model: only sessionStart is wired."
+say "Only sessionStart is wired -- capture is explicit-only via the garden-capture skill."
 HOOK_START="$REPO_DIR/scripts/session-start.sh"
 # Cursor uses the same script; it auto-detects Cursor via $CURSOR_VERSION env
 # var (set by Cursor on every hook invocation) and emits JSON instead of
@@ -158,14 +155,14 @@ else
     say "  { \"matcher\": \"startup|resume\", \"hooks\": [{ \"type\": \"command\", \"command\": \"$HOOK_START\" }] }"
   fi
   # Legacy hooks from earlier installs: extract-to-inbox.sh wired as a
-  # SessionEnd / PreCompact hook caused a recursion fan-out (every claude -p
-  # worker the script spawned was itself a Claude Code session whose own
-  # SessionEnd re-fired the hook). Warn but do not auto-edit user settings.
+  # SessionEnd / PreCompact hook. The script no longer ships and capture
+  # is explicit-only; warn so the user can clean up.
   if grep -qF "extract-to-inbox.sh" "$SETTINGS"; then
     say ""
     say "WARN: settings.json still references extract-to-inbox.sh as a hook."
-    say "      Remove the SessionEnd and PreCompact blocks; the gardener's schedule"
-    say "      now handles capture extraction. See docs/SCHEDULING.md."
+    say "      The auto-capture extractor has been removed; gardenkit captures only"
+    say "      via explicit garden-capture invocations now. Remove the SessionEnd"
+    say "      and PreCompact blocks from settings.json."
   fi
 fi
 
@@ -192,13 +189,13 @@ else
     say "Cursor sessionStart hook NOT in $CURSOR_HOOKS. Add manually under .hooks.sessionStart:"
     say "  { \"type\": \"command\", \"command\": \"$CURSOR_HOOK_START\" }"
   fi
-  # Same warning as Claude: legacy sessionEnd / preCompact wiring caused
-  # spawn fan-out via claude -p.
+  # Legacy hook from earlier installs (see Claude block above).
   if grep -qF "extract-to-inbox.sh" "$CURSOR_HOOKS"; then
     say ""
     say "WARN: $CURSOR_HOOKS still references extract-to-inbox.sh as a hook."
-    say "      Remove the sessionEnd and preCompact blocks; the gardener's schedule"
-    say "      now handles capture extraction. See docs/SCHEDULING.md."
+    say "      The auto-capture extractor has been removed; gardenkit captures only"
+    say "      via explicit garden-capture invocations now. Remove the sessionEnd"
+    say "      and preCompact blocks from $CURSOR_HOOKS."
   fi
 fi
 
@@ -255,8 +252,8 @@ case "$SCHEDULING_CHOICE" in
     say "  ~/.claude/scheduled-tasks/gardener/SKILL.md."
     say ""
     say "  First run: click 'Run now' in Desktop Routines, watch for permission"
-    say "  prompts on the connected MCPs (Gmail/Drive/Slack/etc.), and select"
-    say "  'always allow' for each so future runs proceed unattended."
+    say "  prompts (Bash, git push, etc.), and select 'always allow' for each"
+    say "  so future runs proceed unattended."
     ;;
   u|cursor)
     say ""
@@ -293,7 +290,9 @@ esac
 section "Next steps"
 say "1. Fill ~/garden/meta/user.md. Ask Claude or Cursor: 'Interview me for my user.md (15 questions).'"
 say "2. Bootstrap your voice profile. Ask the agent: 'init my voice from Slack' (invokes garden-voice)."
-say "3. Bootstrap your knowledge graph. Ask the agent: 'init my garden from connected sources' (invokes garden-bootstrap)."
+say "3. (Optional) Seed the vault from connected sources. Ask the agent: 'init my garden from"
+say "     connected sources' (invokes garden-bootstrap). One-shot, interactive, you confirm the plan."
+say "     Never runs unattended."
 say "4. Push the vault to a private GitHub repo:"
 say "     cd ~/garden && git remote add origin git@github.com:<you>/garden.git && git push -u origin main"
 say "5. Finish the scheduling step you chose in section 6. See $REPO_DIR/docs/SCHEDULING.md for details on either path."

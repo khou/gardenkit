@@ -1,6 +1,6 @@
 ---
 name: garden-capture
-description: Capture a thought, decision, learning, or fact into the garden vault inbox. Use when the user says "capture X", "remember that X", "for the garden Y", or when a clearly noteworthy fact emerges in conversation that isn't already in the vault. Writes to ~/garden/inbox/: the gardener will file it properly later.
+description: Capture a thought, decision, learning, or fact into the garden vault inbox. Use ONLY when the user explicitly asks: "capture X", "remember that X", "for the garden Y", "save this", etc. Do not capture proactively — the user wants to approve what lands in the vault. Writes to ~/garden/inbox/: the gardener will file it properly later.
 ---
 
 # garden-capture
@@ -9,12 +9,9 @@ Drops a raw capture into `~/garden/inbox/`. The gardener (scheduled) processes i
 
 ## When to use
 
-- User explicitly invokes: "capture this", "save that", "for the garden"
-- A decision is made in conversation that's worth recording
-- A fact emerges about a project, person, or tool that the vault doesn't have yet
-- A useful link or reference is shared
+Only when the user explicitly invokes capture. Triggers: "capture this", "save that", "for the garden", "remember X", or equivalents.
 
-Don't capture conversational fluff or things already in the vault.
+If you notice something in conversation that *seems* noteworthy but the user didn't ask to capture, do **not** write to `inbox/`. Suggest it inline ("worth capturing?") and let the user decide. The vault is the user's, and they want explicit control over what goes in.
 
 ## How
 

@@ -13,13 +13,13 @@ The gardener is the vault's **out-of-band maintenance loop**. It is the personal
 
 Three explicit jobs every pass should keep in mind:
 
-1. **Verify.** Cross-check existing notes against the rest of the vault and the latest external source material. When a note's claims still hold, stamp it as verified so recall can trust it. When the latest evidence contradicts, set `supersedes:` / `contradicts:` or flag for human review. See "Consistency check" and "Verification stamping" below.
+1. **Verify.** Cross-check existing notes against the rest of the vault and against newer captures arriving in `inbox/`. When a note's claims still hold, stamp it as verified so recall can trust it. When the latest evidence contradicts, set `supersedes:` / `contradicts:` or flag for human review. See "Consistency check" and "Verification stamping" below.
 2. **Organize.** Dedupe, link, regenerate derived MOCs, sweep stale entries. Keep structure converging as content accumulates. See "Dedupe", "Derived taxonomies", and "Stale-entry sweep" below.
 3. **Enrich.** Surface cross-note patterns no single capture could see. Promote recurring themes to synthesis notes. Extend the derived-MOC mechanism beyond entity types to thematic patterns when threshold is met. See "Thematic synthesis" below.
 
 The gardener may spend a non-trivial token budget on this work each pass. The cost is paid once and amortized across every recall. Spend it.
 
-The substrate for verification, in a personal vault, is the rest of the vault plus the connected external sources. (The same principle applied to production agent memory uses a different substrate: service-rename events, span signatures, deploy events, commit SHAs. Substrate differs; loop is the same.)
+The substrate for verification, in a personal vault, is the rest of the vault plus the steady stream of new captures landing in `inbox/`. (The same principle applied to production agent memory uses a different substrate: service-rename events, span signatures, deploy events, commit SHAs. Substrate differs; loop is the same.)
 
 ## Schema migration
 
